@@ -1,15 +1,17 @@
 import socket from "./socket-client";
-import * as env from "./env-vars";
+import { ZanoWallet } from "./utils/zano-wallet";
 
-socket.emit("in-trading", { id: 1 });
+(async () => {
+    const res = await ZanoWallet.getWalletData();
+    socket.emit("in-trading", { id: 1 });
+
+    socket.on("new-order", async (data) => {
+        console.log(data);
+    });
+
+    console.log("Bot started.");
+})();
 
 process.on('exit', () => {
     socket.emit("out-trading", { id: 1 }); 
 });
-
-socket.on("new-order", async (data) => {
-    console.log(data);
-    env.AMOUNT;
-});
-
-console.log("Bot started.");

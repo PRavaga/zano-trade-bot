@@ -9,6 +9,23 @@ function envToDecimal(envVar: string) {
     }
 }
 
+function envToInt(envVar: string) {
+    const errMsg = "AMOUNT .env variable is not positive integer value";
+    const intRegexp = /^[0-9]+$/;
+
+    if (!intRegexp.test(envVar)) {
+        throw new Error(errMsg);
+    }
+
+    const int = parseInt(envVar, 10);
+
+    if (isNaN(int)) {
+        throw new Error(errMsg);
+    }
+
+    return int;
+}
+
 if (!process.env.PAIR_URL) {
     throw new Error("PAIR_URL is not specified in .env file");
 }
@@ -23,5 +40,10 @@ if (!process.env.PRICE) {
 
 export const PRICE = envToDecimal(process.env.PRICE);
 export const AMOUNT = envToDecimal(process.env.AMOUNT);
+
+export const SIMPLEWALLET_PORT = process.env.SIMPLEWALLET_PORT 
+    ? envToInt(process.env.SIMPLEWALLET_PORT) 
+    : undefined;
+
 export const PAIR_URL = process.env.PAIR_URL;
 export const CUSTOM_WS_SERVER = process.env.CUSTOM_WS_SERVER;
