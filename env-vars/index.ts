@@ -1,16 +1,16 @@
 import "dotenv/config";
 import Decimal from "decimal.js";
 
-function envToDecimal(envVar: string) {
+function envToDecimal(envVar: string, envVarName: string) {
     try {
         return new Decimal(envVar);
     } catch {
-        throw new Error("AMOUNT .env variable is not numeric");
+        throw new Error(`${envVarName} .env variable is not numeric`);
     }
 }
 
-function envToInt(envVar: string) {
-    const errMsg = "AMOUNT .env variable is not positive integer value";
+function envToInt(envVar: string, envVarName: string) {
+    const errMsg = `${envVarName} .env variable is not positive integer value`;
     const intRegexp = /^[0-9]+$/;
 
     if (!intRegexp.test(envVar)) {
@@ -38,11 +38,11 @@ if (!process.env.PRICE) {
     throw new Error("PRICE is not specified in .env file");
 }
 
-export const PRICE = envToDecimal(process.env.PRICE);
-export const AMOUNT = envToDecimal(process.env.AMOUNT);
+export const PRICE = envToDecimal(process.env.PRICE, "PRICE");
+export const AMOUNT = envToDecimal(process.env.AMOUNT, "AMOUNT");
 
 export const SIMPLEWALLET_PORT = process.env.SIMPLEWALLET_PORT 
-    ? envToInt(process.env.SIMPLEWALLET_PORT) 
+    ? envToInt(process.env.SIMPLEWALLET_PORT, "SIMPLEWALLET_PORT") 
     : undefined;
 
 export const PAIR_URL = process.env.PAIR_URL;
