@@ -12,10 +12,12 @@ export class FetchUtils {
         return await axios.post(
             `${env.CUSTOM_SERVER || "https://trade.zano.org"}/api/auth`,
             {
-                address,
-                alias,
-                message,
-                signature
+                data: {
+                    address,
+                    alias,
+                    message,
+                    signature
+                }
             },
         ).then(res => res.data);
     }
