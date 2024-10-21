@@ -5,8 +5,8 @@ export class ZanoWallet {
     static async getWalletData() {
         const addressRes = await fetchData("getaddress").then(res => res.json());
         const address = addressRes?.result?.address;
-        if (!address) {
-            throw new Error("Error: error while request or address is not contained in response");
+        if (!address || typeof address !== "string") {
+            throw new Error("Error: error while request or address is not string or not contained in response");
         }
 
         let alias: string | undefined;
@@ -29,8 +29,8 @@ export class ZanoWallet {
 
         const signature = signRes?.result?.sig;
 
-        if (signature === undefined) {
-            throw new Error("Error: error while request or signature is not contained in response");
+        if (typeof signature !== "string") {
+            throw new Error("Error: error while request or signature is not a string or is not contained in response");
         }
 
         return {
