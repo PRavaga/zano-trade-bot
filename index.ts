@@ -22,8 +22,6 @@ import AuthParams from "./interfaces/fetch-utils/AuthParams";
         tradeAuthToken = authRes.data;
     }
 
-    console.log(tradeAuthToken);
-
     socket.on("new-order", async (data) => {
         console.log(data);
     });
