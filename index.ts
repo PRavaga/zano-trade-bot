@@ -57,9 +57,18 @@ import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/uti
 
     socket.emit("in-trading", { id: env.PAIR_ID });
 
-    socket.on("new-order", async (data) => {
-        logger.info(`New order incoming via WS:`);
-        logger.info(data);
+    socket.on("new-order", async () => {
+        logger.info(`New order message incoming via WS, starting order notification handler...`);
+        await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+    });
+
+    socket.on("delete-order", async () => {
+        logger.info(`Order deleted message incoming via WS, starting order notification handler...`);
+        await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+    });
+
+    socket.on("update-orders", async () => {
+        logger.info(`Orders update message incoming via WS, starting order notification handler...`);
         await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
     });
 
