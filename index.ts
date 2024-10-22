@@ -3,6 +3,7 @@ import { ZanoWallet } from "./utils/zano-wallet";
 import { FetchUtils } from "./utils/fetch-methods";
 import AuthParams from "./interfaces/fetch-utils/AuthParams";
 import logger from "./logger";
+import * as env from "./env-vars";
 
 (async () => {
     logger.detailedInfo("Starting bot...");
@@ -40,7 +41,7 @@ import logger from "./logger";
 
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
 
-    socket.emit("in-trading", { id: 1 });
+    socket.emit("in-trading", { id: env.PAIR_ID });
 
     socket.on("new-order", async (data) => {
         logger.info(`New order:`);
@@ -51,5 +52,5 @@ import logger from "./logger";
 })();
 
 process.on('exit', () => {
-    socket.emit("out-trading", { id: 1 }); 
+    socket.emit("out-trading", { id: env.PAIR_ID }); 
 });
