@@ -21,4 +21,14 @@ export class FetchUtils {
             },
         ).then(res => res.data);
     }
+
+    static async getUserOrdersPage(token: string, pairId: number) {
+        return await axios.post(
+            "/api/orders/get-user-page", 
+            {
+                token,
+                pairId,
+            }
+        ).then(res => res.data);
+    }
 }
