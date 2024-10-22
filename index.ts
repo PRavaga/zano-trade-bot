@@ -12,7 +12,8 @@ import logger from "./logger";
 
     const res = await ZanoWallet.getWalletData();
 
-    logger.detailedInfo(`Wallet data fetched: ${JSON.stringify(res)}`);
+    logger.detailedInfo(`Wallet data fetched: `);
+    logger.detailedInfo(res);
 
     if (!res.alias) {
         throw new Error("Zano App selected wallet does not have an alias. Select any wallet that has an alias.");
