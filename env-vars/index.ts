@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Decimal from "decimal.js";
 import { URL } from "url";
+import OfferType from "../interfaces/common/OfferType";
 
 const intRegexp = /^[0-9]+$/;
 
@@ -69,3 +70,4 @@ export const PAIR_ID = idFromPairUrl(process.env.PAIR_URL);
 export const CUSTOM_SERVER = process.env.CUSTOM_SERVER || "https://trade.zano.org";
 export const API_TOKEN = process.env.API_TOKEN || "";
 export const DISABLE_INFO_LOGS = process.env.DISABLE_INFO_LOGS === "true";
+export const TYPE = process.env.TYPE === "BUY" ? "buy" : "sell" as OfferType;
