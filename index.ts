@@ -42,12 +42,11 @@ import { getObservedOrder, onOrdersNotify } from "./utils/utils/utils";
     logger.detailedInfo("Authentication successful.");
     logger.detailedInfo("Getting observed order...");
 
-    const observedOrder = await getObservedOrder(tradeAuthToken);
+    const observedOrderId = await getObservedOrder(tradeAuthToken);
 
-    logger.detailedInfo("Observed order:");
-    logger.detailedInfo(observedOrder);
+    logger.detailedInfo(`Observed order  id: ${observedOrderId}`);
 
-    await onOrdersNotify(tradeAuthToken, observedOrder);
+    await onOrdersNotify(tradeAuthToken, observedOrderId);
 
 
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
@@ -57,7 +56,7 @@ import { getObservedOrder, onOrdersNotify } from "./utils/utils/utils";
     socket.on("new-order", async (data) => {
         logger.info(`New order incoming via WS:`);
         logger.info(data);
-        await onOrdersNotify(tradeAuthToken, observedOrder);
+        await onOrdersNotify(tradeAuthToken, observedOrderId);
     });
 
     logger.info("Bot started.");
