@@ -2,8 +2,10 @@ import Decimal from "decimal.js";
 import logger from "../../logger";
 import { FetchUtils } from "../fetch-methods";
 import * as env from "./../../env-vars";
+import PairData from "../../interfaces/common/PairData";
+import { ZanoWallet } from "../zano-wallet";
 
-export async function onOrdersNotify(authToken: string, observedOrderId: number) {
+async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
     logger.detailedInfo("Started onOrdersNotify.");
     logger.detailedInfo("Fetching user orders page...");
     const response = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
@@ -55,9 +57,75 @@ export async function onOrdersNotify(authToken: string, observedOrderId: number)
 
     logger.detailedInfo("Found matching apply tip:");
     logger.detailedInfo(matchedApplyTip);
+    logger.detailedInfo("Applying order...");
 
+    if (matchedApplyTip.transaction) {
+        if (!matchedApplyTip.hex_raw_proposal) {
+            throw new Error("Invalid transaction data received");
+        }
+
+        const result = await FetchUtils.confirmTransaction(matchedApplyTip.id, authToken);
+
+        if (!result.success) {
+            throw new Error("Failed to confirm transaction");
+        }
+    } else {
+        const firstCurrencyId = pairData?.first_currency.asset_id;
+        const secondCurrencyId = pairData?.second_currency.asset_id;
+
+        if (!(firstCurrencyId && secondCurrencyId)) {
+            throw new Error("Invalid transaction data received");
+        }
+
+        const leftDecimal = new Decimal(matchedApplyTip.left);
+        const priceDecimal = new Decimal(matchedApplyTip.price);
+
+        const params = {
+            destinationAssetID: matchedApplyTip.type === "buy" ? secondCurrencyId : firstCurrencyId,
+            destinationAssetAmount: 
+                notationToString(
+                    matchedApplyTip.type === "buy" ? 
+                    leftDecimal.mul(priceDecimal).toString() : 
+                    leftDecimal.toString()
+                ),
+            currentAssetID: matchedApplyTip.type === "buy" ? firstCurrencyId : secondCurrencyId,
+            currentAssetAmount: 
+                notationToString(matchedApplyTip.type === "buy" ? 
+                    leftDecimal.toString() : 
+                    leftDecimal.mul(priceDecimal).toString()
+                ),
+                
+            destinationAddress: matchedApplyTip.user.address
+        };
+
+
+        const hex = await ZanoWallet.ionicSwap(params);
+
+        const result = await FetchUtils.applyOrder(
+            {
+                ...matchedApplyTip,
+                hex_raw_proposal: hex
+            },
+            authToken
+        );
+
+        if (!result?.success) {
+            throw new Error("Apply order request responded with an error");
+        }
+    }
+
+    logger.detailedInfo("Order applied successfully.");
     logger.detailedInfo("onOrdersNotify finished.");
 }
+
+export async function onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
+    try {
+        return await _onOrdersNotify(authToken, observedOrderId, pairData);
+    } catch (err) {
+        logger.info("Order notification handler failed with error, waiting for new notifications:");
+        logger.info(err);
+    }
+} 
 
 export async function getObservedOrder(authToken: string) {
     logger.detailedInfo("Started getObservedOrder.");
@@ -129,6 +197,20 @@ export async function getObservedOrder(authToken: string) {
     return matchedOrder.id as number;
 }
 
+export async function getPairData(id: number) {
+    logger.detailedInfo("Started getPairData.");
+
+    const response = await FetchUtils.getPair(id);
+
+    const pairData = response?.data;
+
+    if (!response?.success || !pairData || typeof pairData !== "object") {
+        throw new Error("Error: error while request or pair data is not contained in response");
+    }
+
+    return pairData;
+}
+
 export const addZeros = (amount: number | string, decimal_point: number = 12) => {
     const multiplier = new Decimal(10).pow(decimal_point);
     const bigAmount = new Decimal(amount);
@@ -136,3 +218,12 @@ export const addZeros = (amount: number | string, decimal_point: number = 12) =>
     return fixedAmount;
 };
   
+
+export const notationToString = (notation: number | string) => {
+    const decimalValue = new Decimal(notation || "0");
+    
+    const fixedValue = decimalValue.toFixed();
+
+    // Remove trailing zeros
+    return fixedValue;
+}

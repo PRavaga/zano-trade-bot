@@ -66,4 +66,12 @@ export class FetchUtils {
         ).then(res => res.data);
     }
     
+    static async getPair(id: number) {
+        return await axios.post(
+            `${this.apiPath}/api/dex/get-pair`, 
+            {
+                id: id
+            }
+        ).then(res => res.data);
+    }
 }

@@ -4,11 +4,15 @@ import { FetchUtils } from "./utils/fetch-methods";
 import AuthParams from "./interfaces/fetch-utils/AuthParams";
 import logger from "./logger";
 import * as env from "./env-vars";
-import { getObservedOrder, onOrdersNotify } from "./utils/utils/utils";
+import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
 
 
 (async () => {
     logger.detailedInfo("Starting bot...");
+
+    logger.detailedInfo("Fetching trading pair data...");
+    const pairData = await getPairData(env.PAIR_ID);
+
     logger.detailedInfo("Fetching wallet data from Zano App...");
 
     let tradeAuthToken: string;
@@ -44,9 +48,9 @@ import { getObservedOrder, onOrdersNotify } from "./utils/utils/utils";
 
     const observedOrderId = await getObservedOrder(tradeAuthToken);
 
-    logger.detailedInfo(`Observed order  id: ${observedOrderId}`);
+    logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
-    await onOrdersNotify(tradeAuthToken, observedOrderId);
+    await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
 
 
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
@@ -56,7 +60,7 @@ import { getObservedOrder, onOrdersNotify } from "./utils/utils/utils";
     socket.on("new-order", async (data) => {
         logger.info(`New order incoming via WS:`);
         logger.info(data);
-        await onOrdersNotify(tradeAuthToken, observedOrderId);
+        await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
     });
 
     logger.info("Bot started.");

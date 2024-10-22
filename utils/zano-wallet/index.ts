@@ -106,12 +106,12 @@ export class ZanoWallet {
             destination_address: swapParams.destinationAddress,
         }).then(res => res.json());
 
-        const hex = createSwapResult?.data?.result?.hex_raw_proposal;
+        const hex = createSwapResult?.result?.hex_raw_proposal;
 
-        if (createSwapResult?.data?.error?.code === -7) {
+        if (createSwapResult?.error?.code === -7) {
             throw new Error("Insufficient funds on the wallet for creating swap proposal.");
         } else if (!hex || typeof hex !== "string") {
-            throw new Error("Zano App responded with an error during swap proposal creation: " + createSwapResult?.data?.error?.message);
+            throw new Error("Zano App responded with an error during swap proposal creation: " + JSON.stringify(createSwapResult?.error?.message));
         }
 
         return hex;
@@ -122,9 +122,9 @@ export class ZanoWallet {
             hex_raw_proposal: hexRawProposal,
         }).then(res => res.json());
 
-        if (confirmSwapResult.data?.error?.code === -7) {
+        if (confirmSwapResult?.error?.code === -7) {
             throw new Error("Insufficient funds on the wallet for finalizing swap proposal.");
-        } else if (!confirmSwapResult.data?.result) {
+        } else if (!confirmSwapResult?.result) {
             throw new Error("Zano App responded with an error during swap proposal finalization: " + confirmSwapResult?.data?.error?.message);
         }
     }
