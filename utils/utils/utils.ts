@@ -128,3 +128,11 @@ export async function getObservedOrder(authToken: string) {
     logger.detailedInfo("getObservedOrder finished.");
     return matchedOrder.id as number;
 }
+
+export const addZeros = (amount: number | string, decimal_point: number = 12) => {
+    const multiplier = new Decimal(10).pow(decimal_point);
+    const bigAmount = new Decimal(amount);
+    const fixedAmount = bigAmount.times(multiplier);
+    return fixedAmount;
+};
+  

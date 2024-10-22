@@ -2,6 +2,7 @@ import * as env from "../../env-vars";
 import axios from "axios";
 import AuthParams from "../../interfaces/fetch-utils/AuthParams";
 import CreateOrderData from "../../interfaces/fetch-utils/CreateOrderData";
+import ApplyOrderData from "../../interfaces/fetch-utils/ApplyOrderData";
 export class FetchUtils {
 
     static apiPath = env.CUSTOM_SERVER || "https://trade.zano.org";
@@ -44,4 +45,25 @@ export class FetchUtils {
             }
         ).then(res => res.data);
     }
+
+    static async applyOrder(orderData: ApplyOrderData, token: string) {
+        return await axios.post(
+            `${this.apiPath}/api/orders/apply-order`, 
+            {
+                token,
+                orderData,
+            }
+        ).then(res => res.data);
+    }
+
+    static async confirmTransaction(transactionId: string, token: string) {
+        return await axios.post(
+            `${this.apiPath}/api/transactions/confirm`, 
+            {
+                transactionId,
+                token
+            }
+        ).then(res => res.data);
+    }
+    
 }
