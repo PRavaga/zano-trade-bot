@@ -1,8 +1,10 @@
+import logger from "../../logger";
 import { fetchData } from "../fetch-zano-wallet";
 import { v4 as uuidv4 } from 'uuid';
 
 export class ZanoWallet {
     static async getWalletData() {
+        logger.detailedInfo("Fetching address from Zano App...");
         const addressRes = await fetchData("getaddress").then(res => res.json());
         const address = addressRes?.result?.address;
         if (!address || typeof address !== "string") {
@@ -10,6 +12,8 @@ export class ZanoWallet {
         }
 
         let alias: string | undefined;
+
+        logger.detailedInfo("Fetching alias from Zano App...");
 
         const aliasRes = await fetchData("get_alias_by_address", address).then(res => res.json());
         if (aliasRes.result?.status === "OK" && aliasRes.result.alias_info_list[0].alias) {
@@ -19,11 +23,17 @@ export class ZanoWallet {
             }
         }
 
+        logger.detailedInfo("Generating message for signing with wallet private key in Zano App...");
+
         const message = uuidv4();
+
+        logger.detailedInfo("Translating message to base64 format...");
 
         const signRequest = {
             "buff": Buffer.from(message).toString("base64"),
         };
+
+        logger.detailedInfo("Fetching Zano App for message sign...");
 
         const signRes = await fetchData("sign_message", signRequest).then(res => res.json());
 
