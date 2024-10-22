@@ -1,8 +1,10 @@
 import * as env from "../../env-vars";
 import axios from "axios";
 import AuthParams from "../../interfaces/fetch-utils/AuthParams";
-
 export class FetchUtils {
+
+    static apiPath = env.CUSTOM_SERVER || "https://trade.zano.org";
+
     static async auth({
         address,
         alias,
@@ -10,7 +12,7 @@ export class FetchUtils {
         signature
     }: AuthParams) {
         return await axios.post(
-            `${env.CUSTOM_SERVER || "https://trade.zano.org"}/api/auth`,
+            `${this.apiPath}/api/auth`,
             {
                 data: {
                     address,
@@ -24,7 +26,7 @@ export class FetchUtils {
 
     static async getUserOrdersPage(token: string, pairId: number) {
         return await axios.post(
-            "/api/orders/get-user-page", 
+            `${this.apiPath}/api/orders/get-user-page`, 
             {
                 token,
                 pairId,

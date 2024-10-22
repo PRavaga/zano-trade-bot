@@ -58,10 +58,6 @@ if (!process.env.PRICE) {
     throw new Error("PRICE is not specified in .env file");
 }
 
-if (!process.env.API_TOKEN) {
-    throw new Error("API_TOKEN is not specified in .env file");
-}
-
 export const PRICE = envToDecimal(process.env.PRICE, "PRICE");
 export const AMOUNT = envToDecimal(process.env.AMOUNT, "AMOUNT");
 
@@ -71,5 +67,5 @@ export const SIMPLEWALLET_PORT = process.env.SIMPLEWALLET_PORT
 
 export const PAIR_ID = idFromPairUrl(process.env.PAIR_URL);
 export const CUSTOM_SERVER = process.env.CUSTOM_SERVER || "https://trade.zano.org";
-export const API_TOKEN = process.env.API_TOKEN;
+export const API_TOKEN = process.env.API_TOKEN || "";
 export const DISABLE_INFO_LOGS = process.env.DISABLE_INFO_LOGS === "true";
