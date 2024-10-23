@@ -81,6 +81,25 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
             throw new Error("Invalid transaction data received");
         }
 
+        const swapResult = await ZanoWallet.ionicSwapAccept(matchedApplyTip.hex_raw_proposal).catch(err => {
+            if (err.toString().includes("Insufficient funds")) {
+                return "insufficient_funds"
+            } else {
+                throw err;
+            }
+        });
+
+        
+        if (swapResult === "insufficient_funds") {
+            logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
+            ordersToIgnore.push(matchedApplyTip.id);
+
+            logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            return _onOrdersNotify.apply(this, arguments);
+        }
+
         const result = await FetchUtils.confirmTransaction(matchedApplyTip.id, authToken);
 
         if (!result.success) {
@@ -122,13 +141,13 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
         const hex = await ZanoWallet.ionicSwap(params).catch(err => {
             if (err.toString().includes("Insufficient funds")) {
-                return "Insufficient funds"
+                return "insufficient_funds"
             } else {
                 throw err;
             }
         });
 
-        if (hex === "Insufficient funds") {
+        if (hex === "insufficient_funds") {
             logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
             ordersToIgnore.push(matchedApplyTip.id);
 
