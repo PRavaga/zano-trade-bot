@@ -13,7 +13,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     logger.detailedInfo("Getting new observed order state from the response...");
 
     const orders = response?.data?.orders;
-    
+
     if (!orders || !(orders instanceof Array)) {
         throw new Error("Error: error while request or orders is not array or not contained in response");
     }
@@ -36,19 +36,31 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     }
 
     logger.detailedInfo("Processing apply tips...");
-   
-    const matchedApplyTip = applyTips.find(e => {
-        const tipMatches = !!(
-            new Decimal(e.left).lessThanOrEqualTo(newObservedOrder.left) &&
+
+    const matchedApplyTipArray = applyTips.filter(e => {
+        const tipMatches =
             (newObservedOrder.type === "buy"
                 ? new Decimal(newObservedOrder.price).greaterThanOrEqualTo(e.price)
-                : new Decimal(newObservedOrder.price).equals(e.price)
-            )
-        );
+                : new Decimal(newObservedOrder.price).lessThanOrEqualTo(e.price)
+            );
 
         return tipMatches;
     });
 
+    const matchedApplyTip = matchedApplyTipArray.reduce((prev, current) => {
+        if (newObservedOrder.type === "buy") {
+            if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
+                return prev;
+            }
+        } else {
+            if (prev?.price && new Decimal(prev?.price).greaterThanOrEqualTo(current.price)) {
+                return prev;
+            }
+        }
+
+        return current;
+    }, null);
+    
     if (!matchedApplyTip) {
         logger.detailedInfo("Apply tips for observed order are not found.");
         logger.detailedInfo("onOrdersNotify finished.");
@@ -80,24 +92,28 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         const leftDecimal = new Decimal(matchedApplyTip.left);
         const priceDecimal = new Decimal(matchedApplyTip.price);
 
+        const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ? 
+            new Decimal(newObservedOrder.left) : leftDecimal;
+
         const params = {
             destinationAssetID: matchedApplyTip.type === "buy" ? secondCurrencyId : firstCurrencyId,
-            destinationAssetAmount: 
+            destinationAssetAmount:
                 notationToString(
-                    matchedApplyTip.type === "buy" ? 
-                    leftDecimal.mul(priceDecimal).toString() : 
-                    leftDecimal.toString()
+                    matchedApplyTip.type === "buy" ?
+                        targetAmount.mul(priceDecimal).toString() :
+                        targetAmount.toString()
                 ),
             currentAssetID: matchedApplyTip.type === "buy" ? firstCurrencyId : secondCurrencyId,
-            currentAssetAmount: 
-                notationToString(matchedApplyTip.type === "buy" ? 
-                    leftDecimal.toString() : 
-                    leftDecimal.mul(priceDecimal).toString()
+            currentAssetAmount:
+                notationToString(matchedApplyTip.type === "buy" ?
+                    targetAmount.toString() :
+                    targetAmount.mul(priceDecimal).toString()
                 ),
-                
+
             destinationAddress: matchedApplyTip.user.address
         };
 
+        logger.detailedInfo(params);
 
         const hex = await ZanoWallet.ionicSwap(params);
 
@@ -125,7 +141,7 @@ export async function onOrdersNotify(authToken: string, observedOrderId: number,
         logger.info("Order notification handler failed with error, waiting for new notifications:");
         logger.info(err);
     }
-} 
+}
 
 export async function getObservedOrder(authToken: string) {
     logger.detailedInfo("Started getObservedOrder.");
@@ -135,7 +151,7 @@ export async function getObservedOrder(authToken: string) {
         const response = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
 
         const orders = response?.data?.orders;
-    
+
         if (!orders || !(orders instanceof Array)) {
             throw new Error("Error: error while request or orders is not array or not contained in response");
         }
@@ -158,7 +174,7 @@ export async function getObservedOrder(authToken: string) {
 
 
     const existingOrder = await fetchMatchedOrder();
-    
+
     if (existingOrder) {
         logger.detailedInfo("Found existing order.");
         logger.detailedInfo("getObservedOrder finished.");
@@ -187,12 +203,12 @@ export async function getObservedOrder(authToken: string) {
     logger.detailedInfo("Getting newly created order...");
 
     const matchedOrder = await fetchMatchedOrder();
-    
+
     if (!matchedOrder) {
         throw new Error("Error: newly created order not found.");
     }
 
-    
+
     logger.detailedInfo("getObservedOrder finished.");
     return matchedOrder.id as number;
 }
@@ -217,11 +233,11 @@ export const addZeros = (amount: number | string, decimal_point: number = 12) =>
     const fixedAmount = bigAmount.times(multiplier);
     return fixedAmount;
 };
-  
+
 
 export const notationToString = (notation: number | string) => {
     const decimalValue = new Decimal(notation || "0");
-    
+
     const fixedValue = decimalValue.toFixed();
 
     // Remove trailing zeros
