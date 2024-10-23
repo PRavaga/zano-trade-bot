@@ -5,6 +5,9 @@ import * as env from "./../../env-vars";
 import PairData from "../../interfaces/common/PairData";
 import { ZanoWallet } from "../zano-wallet";
 
+
+export const ordersToIgnore = [] as number[];
+
 async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
     logger.detailedInfo("Started onOrdersNotify.");
     logger.detailedInfo("Fetching user orders page...");
@@ -47,7 +50,9 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         return tipMatches;
     });
 
-    const matchedApplyTip = matchedApplyTipArray.reduce((prev, current) => {
+    const matchedApplyTip = matchedApplyTipArray
+        .filter(e => !ordersToIgnore.includes(e.id))
+        .reduce((prev, current) => {
         if (newObservedOrder.type === "buy") {
             if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
                 return prev;
@@ -115,7 +120,23 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
         logger.detailedInfo(params);
 
-        const hex = await ZanoWallet.ionicSwap(params);
+        const hex = await ZanoWallet.ionicSwap(params).catch(err => {
+            if (err.toString().includes("Insufficient funds")) {
+                return "Insufficient funds"
+            } else {
+                throw err;
+            }
+        });
+
+        if (hex === "Insufficient funds") {
+            logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
+            ordersToIgnore.push(matchedApplyTip.id);
+
+            logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            return _onOrdersNotify.apply(this, arguments);
+        }
 
         const result = await FetchUtils.applyOrder(
             {
