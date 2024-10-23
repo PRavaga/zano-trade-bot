@@ -128,6 +128,10 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         if (!result?.success) {
             throw new Error("Apply order request responded with an error");
         }
+
+        logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return _onOrdersNotify.apply(this, arguments);
     }
 
     logger.detailedInfo("Order applied successfully.");
