@@ -74,4 +74,14 @@ export class FetchUtils {
             }
         ).then(res => res.data);
     }
+
+    static async pingActivityChecker(orderId: number, token: string) {
+        return await axios.post(
+            `${this.apiPath}/api/dex/renew-bot`, 
+            {
+                orderId,
+                token
+            }
+        ).then(res => res.data);
+    }
 }

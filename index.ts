@@ -7,6 +7,8 @@ import * as env from "./env-vars";
 import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
 
 
+const ACTIVITY_PING_INTERVAL = 15*1000;
+
 (async () => {
     logger.detailedInfo("Starting bot...");
 
@@ -49,6 +51,18 @@ import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/uti
     const observedOrderId = await getObservedOrder(tradeAuthToken);
 
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
+
+    
+    logger.detailedInfo("Starting activity checker...");
+
+    setInterval(() => {
+        FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
+        .catch(err => {
+            logger.error(`Activity checker ping failed: ${err}`);
+        });
+    }, ACTIVITY_PING_INTERVAL);
+
+    logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
     await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
 
