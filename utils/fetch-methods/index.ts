@@ -56,7 +56,7 @@ export class FetchUtils {
         ).then(res => res.data);
     }
 
-    static async confirmTransaction(transactionId: string, token: string) {
+    static async confirmTransaction(transactionId: number, token: string) {
         return await axios.post(
             `${this.apiPath}/api/transactions/confirm`, 
             {
@@ -80,6 +80,17 @@ export class FetchUtils {
             `${this.apiPath}/api/dex/renew-bot`, 
             {
                 orderId,
+                token
+            }
+        ).then(res => res.data);
+    }
+
+    static async getActiveTxByOrdersIds(firstOrderId: number, secondOrderId: number, token: string) {
+        return await axios.post(
+            `${this.apiPath}/api/transactions/get-active-tx-by-orders-ids`, 
+            {
+                firstOrderId,
+                secondOrderId,
                 token
             }
         ).then(res => res.data);

@@ -8,6 +8,37 @@ import { ZanoWallet } from "../zano-wallet";
 
 export const ordersToIgnore = [] as number[];
 
+async function _processTransaction(hex: string, txId: number, authToken: string) {
+    if (!hex) {
+        throw new Error("Invalid transaction data received");
+    }
+
+    const swapResult = await ZanoWallet.ionicSwapAccept(hex).catch(err => {
+        if (err.toString().includes("Insufficient funds")) {
+            return "insufficient_funds"
+        } else {
+            throw err;
+        }
+    });
+
+    
+    if (swapResult === "insufficient_funds") {
+        logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
+        ordersToIgnore.push(txId);
+
+        logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        return _onOrdersNotify.apply(this, arguments);
+    }
+
+    const result = await FetchUtils.confirmTransaction(txId, authToken);
+
+    if (!result.success) {
+        throw new Error("Failed to confirm transaction");
+    }
+}
+
 async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
     logger.detailedInfo("Started onOrdersNotify.");
     logger.detailedInfo("Fetching user orders page...");
@@ -77,34 +108,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     logger.detailedInfo("Applying order...");
 
     if (matchedApplyTip.transaction) {
-        if (!matchedApplyTip.hex_raw_proposal) {
-            throw new Error("Invalid transaction data received");
-        }
-
-        const swapResult = await ZanoWallet.ionicSwapAccept(matchedApplyTip.hex_raw_proposal).catch(err => {
-            if (err.toString().includes("Insufficient funds")) {
-                return "insufficient_funds"
-            } else {
-                throw err;
-            }
-        });
-
-        
-        if (swapResult === "insufficient_funds") {
-            logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
-            ordersToIgnore.push(matchedApplyTip.id);
-
-            logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            return _onOrdersNotify.apply(this, arguments);
-        }
-
-        const result = await FetchUtils.confirmTransaction(matchedApplyTip.id, authToken);
-
-        if (!result.success) {
-            throw new Error("Failed to confirm transaction");
-        }
+        await _processTransaction(matchedApplyTip.transaction, matchedApplyTip.id, authToken);
     } else {
         const firstCurrencyId = pairData?.first_currency.asset_id;
         const secondCurrencyId = pairData?.second_currency.asset_id;
@@ -166,7 +170,34 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         );
 
         if (!result?.success) {
-            throw new Error("Apply order request responded with an error");
+            if (result.data === "Invalid order data") {
+                logger.detailedInfo("Probably the order is already applied, fetching the probable application data...");
+                
+                let activeTxRes: any;
+                try {
+                    activeTxRes = await FetchUtils.getActiveTxByOrdersIds(1, 2, "test");
+                } catch (err) {
+                    if (err.code === "ERR_BAD_REQUEST") {
+                        activeTxRes = err.response.data;
+                    } else {
+                        throw err;
+                    }
+                }
+
+                if (activeTxRes?.success && activeTxRes?.data) {
+                    logger.detailedInfo("The order is already applied. The active transaction is:");
+                    logger.detailedInfo(activeTxRes);
+                    logger.detailedInfo("Finalizing the transaction...");
+
+                    const activeTx = activeTxRes.data;
+                    await _processTransaction(activeTx.hex_raw_proposal, activeTx.id, authToken);
+                } else {
+                    logger.detailedInfo("The order is not applied, skipping this apply tip.");
+                    ordersToIgnore.push(matchedApplyTip.id);
+                }
+            } else {
+                throw new Error("Apply order request responded with an error");
+            }
         }
 
         logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
