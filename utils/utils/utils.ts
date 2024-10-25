@@ -288,6 +288,58 @@ export async function getObservedOrder(authToken: string) {
     return matchedOrder.id as number;
 }
 
+async function fetchUserOrders(authToken: string) {
+    logger.detailedInfo("Started fetchUserOrders.");
+    logger.detailedInfo("Fetching user orders page...");
+    const response = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
+
+    const orders = response?.data?.orders;
+
+    if (!orders || !(orders instanceof Array)) {
+        throw new Error("Error: error while request or orders is not array or not contained in response");
+    }
+
+    logger.detailedInfo("fetchUserOrders finished.");
+    return orders;
+}
+
+async function getUserOrderById(id: number, authToken: string) {
+    logger.detailedInfo("Started getUserOrderById.");
+    logger.detailedInfo("Fetching user orders page...");
+    const orders = await fetchUserOrders(authToken);
+    logger.detailedInfo("Processing orders...");
+
+    const matchedOrder = orders.find(e => e.id === id);
+
+    logger.detailedInfo("getObservedOrder finished.");
+
+    return matchedOrder;
+}
+
+export async function checkLockedAmount(observedOrderId: number, authToken: string) {
+    logger.detailedInfo("Started checkLockedAmount.");
+    const observedOrder = await getUserOrderById(observedOrderId, authToken);
+
+    if (!observedOrder) {
+        throw new Error("Error: observed order not found at locked amount checker.");
+    }
+
+    const requiredAmount = new Decimal(observedOrder.left);
+    const assetId = observedOrder.first_currency.asset_id;
+
+    const isLocked = await ZanoWallet.isAmountLocked(requiredAmount, assetId);
+
+    let result: number | undefined;
+
+    if (isLocked) {
+        const newOrderId = await getObservedOrder(authToken);
+        result = newOrderId;
+    }
+
+    logger.detailedInfo("checkLockedAmount finished.");
+    return result;
+}
+
 export async function getPairData(id: number) {
     logger.detailedInfo("Started getPairData.");
 

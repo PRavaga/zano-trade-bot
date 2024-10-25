@@ -4,7 +4,7 @@ import { FetchUtils } from "./utils/fetch-methods";
 import AuthParams from "./interfaces/fetch-utils/AuthParams";
 import logger from "./logger";
 import * as env from "./env-vars";
-import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
+import { checkLockedAmount, getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
 
 
 const ACTIVITY_PING_INTERVAL = 15*1000;
@@ -48,7 +48,7 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
     logger.detailedInfo("Authentication successful.");
     logger.detailedInfo("Getting observed order...");
 
-    const observedOrderId = await getObservedOrder(tradeAuthToken);
+    let observedOrderId = await getObservedOrder(tradeAuthToken);
 
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
@@ -85,6 +85,21 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
         logger.info(`Orders update message incoming via WS, starting order notification handler...`);
         await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
     });
+
+    logger.detailedInfo("Starting check locked amount interval worker...");
+
+    setInterval(async () => {
+        try {
+            const resultOrderId = await checkLockedAmount(observedOrderId, tradeAuthToken);
+
+            if (resultOrderId !== undefined) {
+                observedOrderId = resultOrderId;
+            }
+        } catch (err) {
+            logger.error("Error while check locked amount worker: ");
+            logger.error(err);
+        }
+    }, 60e3);
 
     logger.info("Bot started.");
 })();
