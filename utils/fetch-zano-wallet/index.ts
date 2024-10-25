@@ -55,3 +55,22 @@ export const fetchData = async (method, params = {}) => {
         body: httpBody,
     });
 }
+
+export const fetchZanod = async (method, params = {}) => {
+    
+        const httpBody = JSON.stringify({
+            jsonrpc: "2.0",
+            id: "0",
+            method,
+            params,
+        });
+    
+        return fetch(`${env.ZANOD_URL}/json_rpc`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Zano-Access-Token": generateAccessToken(httpBody),
+            },
+            body: httpBody,
+        });
+}

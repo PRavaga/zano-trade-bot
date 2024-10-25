@@ -1,5 +1,5 @@
 import logger from "../../logger";
-import { fetchData } from "../fetch-zano-wallet";
+import { fetchData, fetchZanod } from "../fetch-zano-wallet";
 import { v4 as uuidv4 } from 'uuid';
 import { addZeros } from "../utils/utils";
 
@@ -17,7 +17,7 @@ export class ZanoWallet {
                 decimal_point: 12
             };
         } else {
-            const assetRsp = await fetchData("get_asset_info", { asset_id: assetId }).then(res => res.json());
+            const assetRsp = await fetchZanod("get_asset_info", { asset_id: assetId }).then(res => res.json());
             const asset = assetRsp?.result?.asset_descriptor;
         
             if (!asset) {
@@ -40,7 +40,7 @@ export class ZanoWallet {
 
         logger.detailedInfo("Fetching alias from Zano App...");
 
-        const aliasRes = await fetchData("get_alias_by_address", address).then(res => res.json());
+        const aliasRes = await fetchZanod("get_alias_by_address", address).then(res => res.json());
         if (aliasRes.result?.status === "OK" && aliasRes.result.alias_info_list[0].alias) {
             const aliasData = aliasRes.result.alias_info_list[0].alias;
             if (typeof aliasData === "string") {
