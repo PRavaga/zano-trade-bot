@@ -218,7 +218,7 @@ export async function onOrdersNotify(authToken: string, observedOrderId: number,
     }
 }
 
-export async function getObservedOrder(authToken: string) {
+export async function getObservedOrder(unlockedBalance: Decimal,authToken: string) {
     logger.detailedInfo("Started getObservedOrder.");
 
     async function fetchMatchedOrder() {
@@ -233,10 +233,12 @@ export async function getObservedOrder(authToken: string) {
 
         logger.detailedInfo("Processing orders...");
 
+        const requiredAmount = Decimal.min(env.AMOUNT, unlockedBalance);
+
         const existingOrder = orders.find(e => {
             const isMatch = !!(
-                new Decimal(e.amount).equals(env.AMOUNT) &&
-                new Decimal(e.left).equals(env.AMOUNT) &&
+                new Decimal(e.amount).equals(requiredAmount) &&
+                new Decimal(e.left).equals(requiredAmount) &&
                 new Decimal(e.price).equals(env.PRICE) &&
                 e.type === env.TYPE
             );
@@ -327,12 +329,14 @@ export async function checkLockedAmount(observedOrderId: number, authToken: stri
     const requiredAmount = new Decimal(observedOrder.left);
     const assetId = observedOrder.first_currency.asset_id;
 
-    const isLocked = await ZanoWallet.isAmountLocked(requiredAmount, assetId);
+    const unlockedBalance = await ZanoWallet.getUnlockedBalance(assetId);
+
+    const isLocked = requiredAmount.lt(unlockedBalance);
 
     let result: number | undefined;
 
     if (isLocked) {
-        const newOrderId = await getObservedOrder(authToken);
+        const newOrderId = await getObservedOrder(unlockedBalance, authToken);
         result = newOrderId;
     }
 

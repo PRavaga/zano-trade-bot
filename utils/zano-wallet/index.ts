@@ -130,8 +130,8 @@ export class ZanoWallet {
         }
     }
 
-    static async isAmountLocked(amount: Decimal, assetId: string) {
-        logger.detailedInfo(`isAmountLocked started for asset: ${assetId} and amount: ${amount.toFixed()}`);
+    static async getUnlockedBalance(assetId: string) {
+        logger.detailedInfo(`getUnlockedBalance started for asset: ${assetId}.`);
         logger.detailedInfo("Fetching coin balance from Zano App...");
 
         const coinDataRes = await fetchData("getbalance").then(res => res.json());
@@ -147,19 +147,9 @@ export class ZanoWallet {
         const unlockedBalance = new Decimal(coinData.unlocked);
         const decimalPoint = new Decimal(coinData.asset_info.decimal_point);
 
-        const requestedAmount = amount.mul(new Decimal(10).pow(decimalPoint));
+        const unlockedBalanceWithDP = unlockedBalance.div(new Decimal(10).pow(decimalPoint));
 
-        let result = false;
-
-        if (unlockedBalance.lt(requestedAmount)) {
-            logger.detailedInfo("Coin unlocked balance less than requested amount."); 
-            result = true;
-        }
-
-        logger.detailedInfo("Coin unlocked balance greater than requested amount.");
-        result = false;
-
-        logger.detailedInfo("isAmountLocked finished.");
-        return result;
+        logger.detailedInfo("getUnlockedBalance finished.");
+        return unlockedBalanceWithDP;
     }
 }

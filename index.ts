@@ -46,9 +46,14 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
     }
 
     logger.detailedInfo("Authentication successful.");
+
+    logger.detailedInfo("Getting unlocked balance...");
+
+    const unlockedBalance = await ZanoWallet.getUnlockedBalance(pairData.first_currency.asset_id);
+
     logger.detailedInfo("Getting observed order...");
 
-    let observedOrderId = await getObservedOrder(tradeAuthToken);
+    let observedOrderId = await getObservedOrder(unlockedBalance, tradeAuthToken);
 
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
