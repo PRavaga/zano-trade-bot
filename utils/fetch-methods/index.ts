@@ -21,7 +21,8 @@ export class FetchUtils {
                     alias,
                     message,
                     signature
-                }
+                },
+                neverExpires: true
             },
         ).then(res => res.data);
     }
