@@ -108,7 +108,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     logger.detailedInfo("Applying order...");
 
     if (matchedApplyTip.transaction) {
-        await _processTransaction(matchedApplyTip.transaction, matchedApplyTip.id, authToken);
+        await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken);
     } else {
         const firstCurrencyId = pairData?.first_currency.asset_id;
         const secondCurrencyId = pairData?.second_currency.asset_id;
