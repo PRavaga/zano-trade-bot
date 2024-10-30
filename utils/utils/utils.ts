@@ -220,7 +220,7 @@ export async function onOrdersNotify(authToken: string, observedOrderId: number,
     }
 }
 
-export async function getObservedOrder(authToken: string) {
+export async function getObservedOrder(unlockedBalance: Decimal,authToken: string) {
     logger.detailedInfo("Started getObservedOrder.");
 
     async function fetchMatchedOrder() {
@@ -235,10 +235,12 @@ export async function getObservedOrder(authToken: string) {
 
         logger.detailedInfo("Processing orders...");
 
+        const requiredAmount = Decimal.min(env.AMOUNT, unlockedBalance);
+
         const existingOrder = orders.find(e => {
             const isMatch = !!(
-                new Decimal(e.amount).equals(env.AMOUNT) &&
-                new Decimal(e.left).equals(env.AMOUNT) &&
+                new Decimal(e.amount).equals(requiredAmount) &&
+                new Decimal(e.left).equals(requiredAmount) &&
                 new Decimal(e.price).equals(env.PRICE) &&
                 e.type === env.TYPE
             );
@@ -306,6 +308,60 @@ export async function getObservedOrder(authToken: string) {
 
     logger.detailedInfo("getObservedOrder finished.");
     return matchedOrder.id as number;
+}
+
+async function fetchUserOrders(authToken: string) {
+    logger.detailedInfo("Started fetchUserOrders.");
+    logger.detailedInfo("Fetching user orders page...");
+    const response = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
+
+    const orders = response?.data?.orders;
+
+    if (!orders || !(orders instanceof Array)) {
+        throw new Error("Error: error while request or orders is not array or not contained in response");
+    }
+
+    logger.detailedInfo("fetchUserOrders finished.");
+    return orders;
+}
+
+async function getUserOrderById(id: number, authToken: string) {
+    logger.detailedInfo("Started getUserOrderById.");
+    logger.detailedInfo("Fetching user orders page...");
+    const orders = await fetchUserOrders(authToken);
+    logger.detailedInfo("Processing orders...");
+
+    const matchedOrder = orders.find(e => e.id === id);
+
+    logger.detailedInfo("getObservedOrder finished.");
+
+    return matchedOrder;
+}
+
+export async function checkLockedAmount(observedOrderId: number, authToken: string) {
+    logger.detailedInfo("Started checkLockedAmount.");
+    const observedOrder = await getUserOrderById(observedOrderId, authToken);
+
+    if (!observedOrder) {
+        throw new Error("Error: observed order not found at locked amount checker.");
+    }
+
+    const requiredAmount = new Decimal(observedOrder.left);
+    const assetId = observedOrder.first_currency.asset_id;
+
+    const unlockedBalance = await ZanoWallet.getUnlockedBalance(assetId);
+
+    const isLocked = requiredAmount.lt(unlockedBalance);
+
+    let result: number | undefined;
+
+    if (isLocked) {
+        const newOrderId = await getObservedOrder(unlockedBalance, authToken);
+        result = newOrderId;
+    }
+
+    logger.detailedInfo("checkLockedAmount finished.");
+    return result;
 }
 
 export async function getPairData(id: number) {

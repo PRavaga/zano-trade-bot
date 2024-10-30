@@ -2,6 +2,7 @@ import logger from "../../logger";
 import { fetchData, fetchZanod } from "../fetch-zano-wallet";
 import { v4 as uuidv4 } from 'uuid';
 import { addZeros } from "../utils/utils";
+import Decimal from "decimal.js";
 
 const ZANO_ID = "d6329b5b1f7c0805b5c345f4957554002a2f557845f64d7645dae0e051a6498a";
 
@@ -128,5 +129,28 @@ export class ZanoWallet {
             logger.detailedInfo(confirmSwapResult);
             throw new Error("Zano App responded with an error during swap proposal finalization");
         }
+    }
+
+    static async getUnlockedBalance(assetId: string) {
+        logger.detailedInfo(`getUnlockedBalance started for asset: ${assetId}.`);
+        logger.detailedInfo("Fetching coin balance from Zano App...");
+
+        const coinDataRes = await fetchData("getbalance").then(res => res.json());
+
+        const coinData = coinDataRes?.result?.balances?.find?.(balance => balance?.asset_info?.asset_id === assetId);
+
+        if (!coinData) {
+            throw new Error("Coin Balance not found");
+        }
+
+        logger.detailedInfo("Processing coin unlocked balance...");
+
+        const unlockedBalance = new Decimal(coinData.unlocked);
+        const decimalPoint = new Decimal(coinData.asset_info.decimal_point);
+
+        const unlockedBalanceWithDP = unlockedBalance.div(new Decimal(10).pow(decimalPoint));
+
+        logger.detailedInfo("getUnlockedBalance finished.");
+        return unlockedBalanceWithDP;
     }
 }
