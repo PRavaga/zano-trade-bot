@@ -46,6 +46,11 @@ export const fetchData = async (method, params = {}) => {
         params,
     });
 
+    ;console.log('fetch body:');
+    
+    console.log(httpBody);
+    
+
     return fetch(`http://localhost:${env.SIMPLEWALLET_PORT || 11211}/json_rpc`, {
         method: "POST",
         headers: {
