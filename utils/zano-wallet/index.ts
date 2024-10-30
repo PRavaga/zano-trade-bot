@@ -125,7 +125,8 @@ export class ZanoWallet {
         if (confirmSwapResult?.error?.code === -7) {
             throw new Error("Insufficient funds on the wallet for finalizing swap proposal.");
         } else if (!confirmSwapResult?.result) {
-            throw new Error("Zano App responded with an error during swap proposal finalization: " + confirmSwapResult?.data?.error?.message);
+            logger.detailedInfo(confirmSwapResult);
+            throw new Error("Zano App responded with an error during swap proposal finalization");
         }
     }
 }
