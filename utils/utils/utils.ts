@@ -183,6 +183,8 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
                         throw err;
                     }
                 }
+                logger.detailedInfo(activeTxRes);
+                
 
                 if (activeTxRes?.success && activeTxRes?.data) {
                     logger.detailedInfo("The order is already applied. The active transaction is:");

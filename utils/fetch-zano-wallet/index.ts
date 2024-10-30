@@ -1,5 +1,6 @@
 import * as env from "../../env-vars";
 import forge from "node-forge";
+import logger from "../../logger";
 
 function createJWSToken(payload, secrete_str) {
     const header = { alg: 'HS256', typ: 'JWT' };
@@ -45,10 +46,8 @@ export const fetchData = async (method, params = {}) => {
         method,
         params,
     });
-
-    ;console.log('fetch body:');
     
-    console.log(httpBody);
+    logger.detailedInfo(httpBody);
     
 
     return fetch(`http://localhost:${env.SIMPLEWALLET_PORT || 11211}/json_rpc`, {
