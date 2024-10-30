@@ -55,19 +55,25 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
     
     logger.detailedInfo("Starting activity checker...");
 
-    setInterval(() => {
-        FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
+    async function pingActivity() {
+        return FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
         .catch(err => {
             logger.error(`Activity checker ping failed: ${err}`);
         });
+    }
+
+    pingActivity();
+
+    setInterval(() => {
+        pingActivity();
     }, ACTIVITY_PING_INTERVAL);
 
     logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
 
-    logger.detailedInfo("Listener will start in 10 seconds...");
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    
+    // logger.detailedInfo("Listener will start in 10 seconds...");
+    // await new Promise(resolve => setTimeout(resolve, 10000));
+
     await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
 
 

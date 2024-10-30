@@ -47,6 +47,16 @@ export class FetchUtils {
         ).then(res => res.data);
     }
 
+    static async deleteOrder(token: string, orderId: number) {
+        return await axios.post(
+            `${this.apiPath}/api/orders/cancel`, 
+            {
+                orderId,
+                token
+            }
+        ).then(res => res.data);
+    }
+
     static async applyOrder(orderData: ApplyOrderData, token: string) {
         return await axios.post(
             `${this.apiPath}/api/orders/apply-order`, 

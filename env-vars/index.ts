@@ -74,6 +74,8 @@ export const PAIR_ID = idFromPairUrl(process.env.PAIR_URL);
 export const CUSTOM_SERVER = process.env.CUSTOM_SERVER || "https://trade.zano.org";
 export const API_TOKEN = process.env.API_TOKEN || "";
 
+export const DELETE_ON_START = process.env.DELETE_ON_START === "true";
+
 export const ZANOD_URL = process.env.ZANOD_URL.endsWith("/") ? process.env.ZANOD_URL.slice(0, -1) : process.env.ZANOD_URL;
 
 export const DISABLE_INFO_LOGS = process.env.DISABLE_INFO_LOGS === "true";

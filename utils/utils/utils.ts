@@ -249,17 +249,35 @@ export async function getObservedOrder(authToken: string) {
         return existingOrder;
     }
 
-
-    const existingOrder = await fetchMatchedOrder();
-
-    if (existingOrder) {
-        logger.detailedInfo("Found existing order.");
-        logger.detailedInfo("getObservedOrder finished.");
-        return existingOrder.id as number;
+    if (env.DELETE_ON_START) {
+        const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
+        const existingOrders = existingOrdersList?.data?.orders || [];
+        
+        for (const existingOrder of existingOrders) {
+            if (new Decimal(existingOrder.price).equals(env.PRICE) && existingOrder.type === env.TYPE) {
+                logger.detailedInfo("Deleting existing order with same price...");
+                await FetchUtils.deleteOrder(authToken, existingOrder.id);
+    
+            }
+        }
+       
     }
 
-    logger.detailedInfo("Existing order not found.");
+
+    if (!env.DELETE_ON_START) {
+        const existingOrder = await fetchMatchedOrder();
+
+        if (existingOrder) {
+            logger.detailedInfo("Found existing order.");
+            logger.detailedInfo("getObservedOrder finished.");
+            return existingOrder.id as number;
+        }
+    
+        logger.detailedInfo("Existing order not found.");
+    }
+
     logger.detailedInfo("Creating new order...");
+
 
     const createRes = await FetchUtils.createOrder(
         authToken,
