@@ -69,22 +69,36 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
 
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
 
-    socket.emit("in-trading", { id: env.PAIR_ID });
+    function setSocketListeners() {
+        socket.emit("in-trading", { id: env.PAIR_ID });
 
-    socket.on("new-order", async () => {
-        logger.info(`New order message incoming via WS, starting order notification handler...`);
-        await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
-    });
+        socket.on("new-order", async () => {
+            logger.info(`New order message incoming via WS, starting order notification handler...`);
+            await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+        });
 
-    socket.on("delete-order", async () => {
-        logger.info(`Order deleted message incoming via WS, starting order notification handler...`);
-        await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
-    });
+        socket.on("delete-order", async () => {
+            logger.info(`Order deleted message incoming via WS, starting order notification handler...`);
+            await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+        });
 
-    socket.on("update-orders", async () => {
-        logger.info(`Orders update message incoming via WS, starting order notification handler...`);
-        await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
-    });
+        socket.on("update-orders", async () => {
+            logger.info(`Orders update message incoming via WS, starting order notification handler...`);
+            await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+        });
+
+        socket.on("disconnect", async (reason) => {
+            logger.warn(`Socket disconnected due to ${reason}. Attempting to reconnect...`);
+            
+            try {
+                socket.connect();
+            } catch (error) {
+                logger.error(`Reconnection attempt failed: ${error}`);
+            }
+        });
+    }
+
+    setSocketListeners();
 
     logger.info("Bot started.");
 })();

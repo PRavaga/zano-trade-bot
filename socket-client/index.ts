@@ -1,6 +1,17 @@
 import * as env from "../env-vars";
 import { io } from "socket.io-client";
+import logger from "../logger";
 
-const socket = io(env.CUSTOM_SERVER || "https://trade.zano.org");
+const socket = io(env.CUSTOM_SERVER || "https://trade.zano.org", {
+    reconnectionAttempts: 10,
+    reconnectionDelay: 2000,
+    timeout: 10000,
+});
+
+socket.on("connect", () => logger.detailedInfo("Socket connected:", socket.id));
+socket.on("disconnect", (reason) => logger.warn("Socket disconnected:", reason));
+socket.on("reconnect_attempt", () => logger.detailedInfo("Attempting to reconnect..."));
+socket.on("reconnect", (attempt) => logger.detailedInfo("Reconnected successfully after", attempt, "attempt(s)"));
+socket.on("error", (error) => logger.error("Socket error:", error));
 
 export default socket;
