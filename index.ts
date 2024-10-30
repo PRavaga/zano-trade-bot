@@ -64,6 +64,10 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
 
     logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
+
+    logger.detailedInfo("Listener will start in 10 seconds...");
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
     await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
 
 
