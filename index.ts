@@ -107,6 +107,7 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
             
             try {
                 socket.connect();
+                setSocketListeners();
             } catch (error) {
                 logger.error(`Reconnection attempt failed: ${error}`);
             }
