@@ -1,4 +1,4 @@
-import socket from "./socket-client";
+import { reconnectSocket, getSocket } from "./socket-client";
 import { ZanoWallet } from "./utils/zano-wallet";
 import { FetchUtils } from "./utils/fetch-methods";
 import AuthParams from "./interfaces/fetch-utils/AuthParams";
@@ -8,6 +8,8 @@ import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/uti
 
 
 const ACTIVITY_PING_INTERVAL = 15*1000;
+
+let socket = getSocket();
 
 (async () => {
     logger.detailedInfo("Starting bot...");
@@ -101,7 +103,7 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
             logger.warn(`Socket disconnected due to ${reason}. Attempting to reconnect...`);
             
             try {
-                socket.connect();
+                socket = reconnectSocket();
                 setSocketListeners();
             } catch (error) {
                 logger.error(`Reconnection attempt failed: ${error}`);
