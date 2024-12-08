@@ -1,21 +1,27 @@
-import { reconnectSocket, getSocket } from "./socket-client";
+import SocketClient from "./socket-client";
 import { ZanoWallet } from "./utils/zano-wallet";
 import { FetchUtils } from "./utils/fetch-methods";
 import AuthParams from "./interfaces/fetch-utils/AuthParams";
 import logger from "./logger";
 import * as env from "./env-vars";
 import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
+import { ConfigItemParsed } from "./interfaces/common/Config";
 
 
 const ACTIVITY_PING_INTERVAL = 15*1000;
 
-let socket = getSocket();
+async function thread(configItem: ConfigItemParsed) {
+    const socketClient = new SocketClient();
+    let socket = socketClient.initSocket();
 
-(async () => {
+    process.on('exit', () => {
+        socket.emit("out-trading", { id: configItem.pairId }); 
+    });
+
     logger.detailedInfo("Starting bot...");
 
     logger.detailedInfo("Fetching trading pair data...");
-    const pairData = await getPairData(env.PAIR_ID);
+    const pairData = await getPairData(configItem.pairId);
 
     logger.detailedInfo("Fetching wallet data from Zano App...");
 
@@ -50,7 +56,7 @@ let socket = getSocket();
     logger.detailedInfo("Authentication successful.");
     logger.detailedInfo("Getting observed order...");
 
-    const observedOrderId = await getObservedOrder(tradeAuthToken);
+    const observedOrderId = await getObservedOrder(tradeAuthToken, configItem);
 
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
@@ -82,7 +88,7 @@ let socket = getSocket();
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
 
     function setSocketListeners() {
-        socket.emit("in-trading", { id: env.PAIR_ID });
+        socket.emit("in-trading", { id: configItem.pairId });
 
         socket.on("new-order", async () => {
             logger.info(`New order message incoming via WS, starting order notification handler...`);
@@ -103,7 +109,7 @@ let socket = getSocket();
             logger.warn(`Socket disconnected due to ${reason}. Attempting to reconnect...`);
             
             try {
-                socket = reconnectSocket();
+                socket = socketClient.reconnectSocket();
                 setSocketListeners();
             } catch (error) {
                 logger.error(`Reconnection attempt failed: ${error}`);
@@ -114,8 +120,15 @@ let socket = getSocket();
     setSocketListeners();
 
     logger.info("Bot started.");
-})();
+}
 
-process.on('exit', () => {
-    socket.emit("out-trading", { id: env.PAIR_ID }); 
-});
+
+(async () => {
+
+    for (const configItem of env.readConfig) {
+        logger.detailedInfo(`Starting bot for pair ${configItem.pairId}...`);
+        logger.detailedInfo(`Config: ${JSON.stringify(configItem)}`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        thread(configItem);
+    }
+})();

@@ -4,6 +4,7 @@ import { FetchUtils } from "../fetch-methods";
 import * as env from "./../../env-vars";
 import PairData from "../../interfaces/common/PairData";
 import { ZanoWallet } from "../zano-wallet";
+import { ConfigItemParsed } from "../../interfaces/common/Config";
 
 
 export const ordersToIgnore = [] as number[];
@@ -42,7 +43,7 @@ async function _processTransaction(hex: string, txId: number, authToken: string)
 async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
     logger.detailedInfo("Started onOrdersNotify.");
     logger.detailedInfo("Fetching user orders page...");
-    const response = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
+    const response = await FetchUtils.getUserOrdersPage(authToken, parseInt(pairData.id, 10));
 
     logger.detailedInfo("Getting new observed order state from the response...");
 
@@ -220,12 +221,12 @@ export async function onOrdersNotify(authToken: string, observedOrderId: number,
     }
 }
 
-export async function getObservedOrder(authToken: string) {
+export async function getObservedOrder(authToken: string, configItem: ConfigItemParsed) {
     logger.detailedInfo("Started getObservedOrder.");
 
     async function fetchMatchedOrder() {
         logger.detailedInfo("Fetching user orders page...");
-        const response = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
+        const response = await FetchUtils.getUserOrdersPage(authToken, configItem.pairId);
 
         const orders = response?.data?.orders;
 
@@ -237,10 +238,10 @@ export async function getObservedOrder(authToken: string) {
 
         const existingOrder = orders.find(e => {
             const isMatch = !!(
-                new Decimal(e.amount).equals(env.AMOUNT) &&
-                new Decimal(e.left).equals(env.AMOUNT) &&
-                new Decimal(e.price).equals(env.PRICE) &&
-                e.type === env.TYPE
+                new Decimal(e.amount).equals(configItem.amount) &&
+                new Decimal(e.left).equals(configItem.amount) &&
+                new Decimal(e.price).equals(configItem.price) &&
+                e.type === configItem.type
             );
 
             return isMatch;
@@ -250,11 +251,11 @@ export async function getObservedOrder(authToken: string) {
     }
 
     if (env.DELETE_ON_START) {
-        const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, env.PAIR_ID);
+        const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, configItem.pairId);
         const existingOrders = existingOrdersList?.data?.orders || [];
         
         for (const existingOrder of existingOrders) {
-            if (new Decimal(existingOrder.price).equals(env.PRICE) && existingOrder.type === env.TYPE) {
+            if (new Decimal(existingOrder.price).equals(configItem.price) && existingOrder.type === configItem.type) {
                 logger.detailedInfo("Deleting existing order with same price...");
                 await FetchUtils.deleteOrder(authToken, existingOrder.id);
     
@@ -282,10 +283,10 @@ export async function getObservedOrder(authToken: string) {
     const createRes = await FetchUtils.createOrder(
         authToken,
         {
-            pairId: env.PAIR_ID,
-            type: env.TYPE,
-            amount: env.AMOUNT.toFixed(),
-            price: env.PRICE.toFixed(),
+            pairId: configItem.pairId,
+            type: configItem.type,
+            amount: configItem.amount.toFixed(),
+            price: configItem.price.toFixed(),
             side: "limit"
         }
     );
