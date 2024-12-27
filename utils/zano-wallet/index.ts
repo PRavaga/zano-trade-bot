@@ -129,4 +129,17 @@ export class ZanoWallet {
             throw new Error("Zano App responded with an error during swap proposal finalization");
         }
     }
+
+    static async getSwapInfo(hexRawProposal: string) {
+        const swapInfoResult = await fetchData("ionic_swap_get_proposal_info", {
+            hex_raw_proposal: hexRawProposal,
+        }).then(res => res.json());
+
+        if (!swapInfoResult?.result) {
+            console.error(swapInfoResult);
+            throw new Error("Zano App responded with an error during swap info request");
+        }
+
+        return swapInfoResult.result;
+    }
 }

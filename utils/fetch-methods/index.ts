@@ -3,6 +3,7 @@ import axios from "axios";
 import AuthParams from "../../interfaces/fetch-utils/AuthParams";
 import CreateOrderData from "../../interfaces/fetch-utils/CreateOrderData";
 import ApplyOrderData from "../../interfaces/fetch-utils/ApplyOrderData";
+import { UserPageData } from "../../interfaces/responses/UserPageData";
 export class FetchUtils {
 
     static apiPath = env.CUSTOM_SERVER || "https://trade.zano.org";

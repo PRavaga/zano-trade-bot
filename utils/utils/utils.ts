@@ -9,10 +9,60 @@ import { ConfigItemParsed } from "../../interfaces/common/Config";
 
 export const ordersToIgnore = [] as number[];
 
-async function _processTransaction(hex: string, txId: number, authToken: string) {
+interface TxData {
+    destinationAssetID: string;
+    destinationAssetAmount: string;
+    currentAssetID: string;
+    currentAssetAmount: string;
+}
+
+async function _processTransaction(hex: string, txId: number, authToken: string, txData: TxData) {
     if (!hex) {
         throw new Error("Invalid transaction data received");
     }
+
+    const info = await ZanoWallet.getSwapInfo(hex);
+
+    const receivingAssetData = info.proposal.to_finalizer.find(e => e.asset_id === txData.destinationAssetID);
+    const sendingAssetData = info.proposal.to_initiator.find(e => e.asset_id === txData.currentAssetID);
+
+
+    if (!receivingAssetData || !sendingAssetData) {
+        throw new Error([
+            `Invalid transaction data received.`,
+            `Data from hex: ${JSON.stringify(info)}`,
+            `Data from trade website: ${JSON.stringify(txData)}`
+        ].join(" "));
+    }
+
+    const zanodReceivingData = await ZanoWallet.getAsset(receivingAssetData.asset_id);
+    const zanodSendingData = await ZanoWallet.getAsset(sendingAssetData.asset_id);
+
+    if (!zanodReceivingData || !zanodSendingData) {
+        throw new Error("One or both assets not found");
+    }
+
+    const txDataReceivingAmount = addZeros(txData.destinationAssetAmount, zanodReceivingData.decimal_point);
+    const txDataSendingAmount = addZeros(txData.currentAssetAmount, zanodSendingData.decimal_point);
+
+    if (txDataReceivingAmount?.toString() !== receivingAssetData.amount?.toString()) {
+        throw new Error([
+            `Receiving asset amount mismatch.`,
+            `Hex amount: ${receivingAssetData.amount}`,
+            `Trade website amount: ${txDataReceivingAmount}`
+        ].join(" "));
+    }
+
+    if (txDataSendingAmount?.toString() !== sendingAssetData.amount?.toString()) {
+        throw new Error([
+            `Sending asset amount mismatch.`,
+            `Hex amount: ${sendingAssetData.amount}`,
+            `Trade website amount: ${txDataSendingAmount}`
+        ].join(" "));
+    }
+
+    logger.detailedInfo("Tx validated successfully.");
+
 
     const swapResult = await ZanoWallet.ionicSwapAccept(hex).catch(err => {
         if (err.toString().includes("Insufficient funds")) {
@@ -41,7 +91,7 @@ async function _processTransaction(hex: string, txId: number, authToken: string)
 }
 
 async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
-    logger.detailedInfo("Started onOrdersNotify.");
+    logger.detailedInfo("Started    onOrdersNotify.");
     logger.detailedInfo("Fetching user orders page...");
     const response = await FetchUtils.getUserOrdersPage(authToken, parseInt(pairData.id, 10));
 
@@ -108,37 +158,52 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     logger.detailedInfo(matchedApplyTip);
     logger.detailedInfo("Applying order...");
 
+    const leftDecimal = new Decimal(matchedApplyTip.left);
+    const priceDecimal = new Decimal(matchedApplyTip.price);
+
+    const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ? 
+        new Decimal(newObservedOrder.left) : leftDecimal;
+
+    const destinationAssetAmount = notationToString(
+        matchedApplyTip.type === "buy" ?
+            targetAmount.mul(priceDecimal).toString() :
+            targetAmount.toString()
+    );
+
+    const currentAssetAmount = notationToString(matchedApplyTip.type === "buy" ?
+        targetAmount.toString() :
+        targetAmount.mul(priceDecimal).toString()
+    )
+
+    const firstCurrencyId = pairData?.first_currency.asset_id;
+    const secondCurrencyId = pairData?.second_currency.asset_id;
+
+    if (!(firstCurrencyId && secondCurrencyId)) {
+        throw new Error("Invalid transaction data received");
+    }
+
+    const destinationAssetID = matchedApplyTip.type === "buy" ? secondCurrencyId : firstCurrencyId;
+    const currentAssetID = matchedApplyTip.type === "buy" ? firstCurrencyId : secondCurrencyId;
+
+    const txData = {
+        destinationAssetID: destinationAssetID,
+        destinationAssetAmount: destinationAssetAmount,
+        currentAssetID: currentAssetID,
+        currentAssetAmount: currentAssetAmount
+    };
+
     if (matchedApplyTip.transaction) {
-        await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken);
+        await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken, txData);
     } else {
-        const firstCurrencyId = pairData?.first_currency.asset_id;
-        const secondCurrencyId = pairData?.second_currency.asset_id;
 
-        if (!(firstCurrencyId && secondCurrencyId)) {
-            throw new Error("Invalid transaction data received");
-        }
-
-        const leftDecimal = new Decimal(matchedApplyTip.left);
-        const priceDecimal = new Decimal(matchedApplyTip.price);
-
-        const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ? 
-            new Decimal(newObservedOrder.left) : leftDecimal;
+        // return logger.detailedInfo("IGNORING INITIATING SWAP {DEBUGGING}");
+        
 
         const params = {
-            destinationAssetID: matchedApplyTip.type === "buy" ? secondCurrencyId : firstCurrencyId,
-            destinationAssetAmount:
-                notationToString(
-                    matchedApplyTip.type === "buy" ?
-                        targetAmount.mul(priceDecimal).toString() :
-                        targetAmount.toString()
-                ),
-            currentAssetID: matchedApplyTip.type === "buy" ? firstCurrencyId : secondCurrencyId,
-            currentAssetAmount:
-                notationToString(matchedApplyTip.type === "buy" ?
-                    targetAmount.toString() :
-                    targetAmount.mul(priceDecimal).toString()
-                ),
-
+            destinationAssetID: destinationAssetID,
+            destinationAssetAmount: destinationAssetAmount,
+            currentAssetID: currentAssetID,
+            currentAssetAmount: currentAssetAmount,
             destinationAddress: matchedApplyTip.user.address
         };
 
@@ -193,7 +258,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
                     logger.detailedInfo("Finalizing the transaction...");
 
                     const activeTx = activeTxRes.data;
-                    await _processTransaction(activeTx.hex_raw_proposal, activeTx.id, authToken);
+                    await _processTransaction(activeTx.hex_raw_proposal, activeTx.id, authToken, txData);
                 } else {
                     logger.detailedInfo("The order is not applied, skipping this apply tip.");
                     ordersToIgnore.push(matchedApplyTip.id);
