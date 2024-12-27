@@ -14,9 +14,6 @@ async function thread(configItem: ConfigItemParsed) {
     const socketClient = new SocketClient();
     let socket = socketClient.initSocket();
 
-    process.on('exit', () => {
-        socket.emit("out-trading", { id: configItem.pairId }); 
-    });
 
     logger.detailedInfo("Starting bot...");
 

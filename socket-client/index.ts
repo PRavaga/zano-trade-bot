@@ -30,12 +30,17 @@ export default class SocketClient {
     }
 
     reconnectSocket() {
+
         try {
-            this.socket.disconnect();
-        } catch (error) {}
-    
+            if (this.socket) {
+                this.socket.removeAllListeners(); 
+                this.socket.disconnect();
+            }
+        } catch (error) {
+            logger.error(`Socket cleanup failed: ${error}`);
+        }
+
         this.socket = this.initSocket();
-    
         return this.socket;
     }
 }
