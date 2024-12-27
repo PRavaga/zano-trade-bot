@@ -50,7 +50,7 @@ export const fetchData = async (method, params = {}) => {
     logger.detailedInfo(httpBody);
     
 
-    return fetch(`http://localhost:${env.SIMPLEWALLET_PORT || 11211}/json_rpc`, {
+    return fetch(`http://127.0.0.1:${env.SIMPLEWALLET_PORT || 11211}/json_rpc`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
