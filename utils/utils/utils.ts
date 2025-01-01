@@ -111,6 +111,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         logger.info("Observed order has been finished or canceled.");
         logger.detailedInfo(newObservedOrder);
         // process.exit(0);
+        return;
     }
 
     logger.detailedInfo("Getting apply tips from the response...");
