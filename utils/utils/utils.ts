@@ -194,6 +194,8 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     };
 
     if (matchedApplyTip.transaction) {
+        logger.debug("tx data");
+        logger.debug(txData);
         await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken, txData);
     } else {
 
