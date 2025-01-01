@@ -109,7 +109,8 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
     if (!newObservedOrder || new Decimal(newObservedOrder.left).lessThanOrEqualTo(0)) {
         logger.info("Observed order has been finished or canceled.");
-        process.exit(0);
+        logger.detailedInfo(newObservedOrder);
+        // process.exit(0);
     }
 
     logger.detailedInfo("Getting apply tips from the response...");
