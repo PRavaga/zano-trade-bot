@@ -78,12 +78,15 @@ export const readConfig: ConfigParsed = (() => {
             const parsedType = item.type.toLowerCase() === "buy" ? "buy" : "sell" as OfferType;
             const parsedPairUrl = idFromPairUrl(item.pair_url);
 
+            const trade_id = item.trade_id || null;
+
 
             return {
                 pairId: parsedPairUrl,
                 amount: parsedAmount,
                 price: parsedPrice,
                 type: parsedType,
+                trade_id
             };
         });
 

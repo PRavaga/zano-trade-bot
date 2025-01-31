@@ -6,6 +6,9 @@ import logger from "./logger";
 import * as env from "./env-vars";
 import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
 import { ConfigItemParsed } from "./interfaces/common/Config";
+import sequelize from "./database";
+import Order from "./schemes/Order";
+import PairData from "./interfaces/common/PairData";
 
 
 const ACTIVITY_PING_INTERVAL = 15*1000;
@@ -53,7 +56,15 @@ async function thread(configItem: ConfigItemParsed) {
     logger.detailedInfo("Authentication successful.");
     logger.detailedInfo("Getting observed order...");
 
-    const observedOrderId = await getObservedOrder(tradeAuthToken, configItem);
+    const observedOrderId = await getObservedOrder(tradeAuthToken, configItem).catch(err => {
+        logger.error(`Error getting observed order: ${err}`);
+        return null;
+    });
+
+    if (!observedOrderId) {
+        logger.error("No observed order found. Exiting thread...");
+        return;
+    }
 
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
@@ -61,6 +72,11 @@ async function thread(configItem: ConfigItemParsed) {
     logger.detailedInfo("Starting activity checker...");
 
     async function pingActivity() {
+
+        if (!observedOrderId) {
+            return;
+        }
+
         return FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
         .catch(err => {
             logger.error(`Activity checker ping failed: ${err}`);
@@ -79,7 +95,16 @@ async function thread(configItem: ConfigItemParsed) {
     // logger.detailedInfo("Listener will start in 10 seconds...");
     // await new Promise(resolve => setTimeout(resolve, 10000));
 
-    await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+    const notificationParams: [
+        string,
+        number,
+        PairData,
+        string | null
+    ] = [tradeAuthToken, observedOrderId, pairData, configItem.trade_id];
+
+    await onOrdersNotify(...notificationParams);
+
+
 
 
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
@@ -89,17 +114,17 @@ async function thread(configItem: ConfigItemParsed) {
 
         socket.on("new-order", async () => {
             logger.info(`New order message incoming via WS, starting order notification handler...`);
-            await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+            await onOrdersNotify(...notificationParams);
         });
 
         socket.on("delete-order", async () => {
             logger.info(`Order deleted message incoming via WS, starting order notification handler...`);
-            await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+            await onOrdersNotify(...notificationParams);
         });
 
         socket.on("update-orders", async () => {
             logger.info(`Orders update message incoming via WS, starting order notification handler...`);
-            await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
+            await onOrdersNotify(...notificationParams);
         });
 
         socket.on("disconnect", async (reason) => {
@@ -121,6 +146,37 @@ async function thread(configItem: ConfigItemParsed) {
 
 
 (async () => {
+
+    await sequelize.sync({ }); 
+
+    logger.detailedInfo("Database synced!");
+
+    const allSavedorders = await Order.findAll();
+    
+
+    for (const element of allSavedorders) {
+        const configItem = env.readConfig.find(configItem => configItem.trade_id === element.trade_id);
+
+        if (!configItem) {
+            await element.destroy();
+            continue;
+        }
+
+        const elementPairid = element.pair_url?.split("/").at(-1);
+
+        if (
+            !element.price.equals(configItem.price) || 
+            (!elementPairid || parseInt(elementPairid, 10) !== configItem.pairId) 
+            || !element.amount.equals(configItem.amount)
+        ) {
+            logger.detailedInfo(`Deleting saved order due to price or pair_id or amount mismatch`);
+            await element.destroy();
+            continue;
+        }
+
+        logger.detailedInfo(`Found saved order for pair ${configItem.pairId}...`);
+
+    }
 
     for (const configItem of env.readConfig) {
         logger.detailedInfo(`Starting bot for pair ${configItem.pairId}...`);

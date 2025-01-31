@@ -5,7 +5,7 @@ import * as env from "./../../env-vars";
 import PairData from "../../interfaces/common/PairData";
 import { ZanoWallet } from "../zano-wallet";
 import { ConfigItemParsed } from "../../interfaces/common/Config";
-
+import Order from "../../schemes/Order";
 
 export const ordersToIgnore = [] as number[];
 
@@ -72,7 +72,7 @@ async function _processTransaction(hex: string, txId: number, authToken: string,
         }
     });
 
-    
+
     if (swapResult === "insufficient_funds") {
         logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
         ordersToIgnore.push(txId);
@@ -80,7 +80,7 @@ async function _processTransaction(hex: string, txId: number, authToken: string,
         logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
         await new Promise(resolve => setTimeout(resolve, 5000));
 
-        return _onOrdersNotify.apply(this, arguments);
+        return;
     }
 
     const result = await FetchUtils.confirmTransaction(txId, authToken);
@@ -88,9 +88,11 @@ async function _processTransaction(hex: string, txId: number, authToken: string,
     if (!result.success) {
         throw new Error("Failed to confirm transaction");
     }
+
+    return true;
 }
 
-async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
+async function _onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData, trade_id: string | null) {
     logger.detailedInfo("Started    onOrdersNotify.");
     logger.detailedInfo("Fetching user orders page...");
     const response = await FetchUtils.getUserOrdersPage(authToken, parseInt(pairData.id, 10));
@@ -116,7 +118,19 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
     logger.detailedInfo("Getting apply tips from the response...");
 
-    const applyTips = response?.data?.applyTips;
+    const savedOrder = await Order.findOne({
+        where: {
+            trade_id: trade_id
+        }
+    });
+
+    const applyTips = response?.data?.applyTips.filter(e => {
+        if (!savedOrder) {
+            return true;
+        }
+
+        return !savedOrder?.appliedTo.includes(e.id);
+    });
 
     if (!applyTips || !(applyTips instanceof Array)) {
         throw new Error("Error: error while request or applyTips is not array or not contained in response");
@@ -137,19 +151,19 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     const matchedApplyTip = matchedApplyTipArray
         .filter(e => !ordersToIgnore.includes(e.id))
         .reduce((prev, current) => {
-        if (newObservedOrder.type === "buy") {
-            if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
-                return prev;
+            if (newObservedOrder.type === "buy") {
+                if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
+                    return prev;
+                }
+            } else {
+                if (prev?.price && new Decimal(prev?.price).greaterThanOrEqualTo(current.price)) {
+                    return prev;
+                }
             }
-        } else {
-            if (prev?.price && new Decimal(prev?.price).greaterThanOrEqualTo(current.price)) {
-                return prev;
-            }
-        }
 
-        return current;
-    }, null);
-    
+            return current;
+        }, null);
+
     if (!matchedApplyTip) {
         logger.detailedInfo("Apply tips for observed order are not found.");
         logger.detailedInfo("onOrdersNotify finished.");
@@ -163,7 +177,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     const leftDecimal = new Decimal(matchedApplyTip.left);
     const priceDecimal = new Decimal(matchedApplyTip.price);
 
-    const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ? 
+    const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ?
         new Decimal(newObservedOrder.left) : leftDecimal;
 
     const destinationAssetAmount = notationToString(
@@ -194,14 +208,50 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         currentAssetAmount: currentAssetAmount
     };
 
+    async function saveAppliedId(id: number) {
+
+        logger.detailedInfo("Updating order applies...");
+
+
+        if (trade_id) {
+
+            const prevOrder = await Order.findOne({
+                where: {
+                    trade_id: trade_id,
+                }
+            });
+
+            if (!prevOrder) {
+                throw new Error("Order not found in the database");
+            }
+
+            await Order.update(
+                {
+                    appliedTo: [...prevOrder?.appliedTo, parseInt(matchedApplyTip.id, 10)]
+                },
+                {
+                    where: {
+                        trade_id: trade_id
+                    }
+                }
+            );
+
+            logger.detailedInfo("Order applies updated successfully.");
+        }
+    }
+
     if (matchedApplyTip.transaction) {
         logger.debug("tx data");
         logger.debug(txData);
-        await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken, txData);
+        const success = await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken, txData);
+        if (success) {
+            await saveAppliedId(matchedApplyTip.id);
+        }
+        return _onOrdersNotify.apply(this, arguments);
     } else {
 
         // return logger.detailedInfo("IGNORING INITIATING SWAP {DEBUGGING}");
-        
+
 
         const params = {
             destinationAssetID: destinationAssetID,
@@ -242,7 +292,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         if (!result?.success) {
             if (result.data === "Invalid order data") {
                 logger.detailedInfo("Probably the order is already applied, fetching the probable application data...");
-                
+
                 let activeTxRes: any;
                 try {
                     activeTxRes = await FetchUtils.getActiveTxByOrdersIds(1, 2, "test");
@@ -254,7 +304,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
                     }
                 }
                 logger.detailedInfo(activeTxRes);
-                
+
 
                 if (activeTxRes?.success && activeTxRes?.data) {
                     logger.detailedInfo("The order is already applied. The active transaction is:");
@@ -262,7 +312,12 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
                     logger.detailedInfo("Finalizing the transaction...");
 
                     const activeTx = activeTxRes.data;
-                    await _processTransaction(activeTx.hex_raw_proposal, activeTx.id, authToken, txData);
+                    const processSuccess = await _processTransaction(activeTx.hex_raw_proposal, activeTx.id, authToken, txData);
+
+                    if (processSuccess) {
+                        await saveAppliedId(matchedApplyTip.id);
+                    }
+
                 } else {
                     logger.detailedInfo("The order is not applied, skipping this apply tip.");
                     ordersToIgnore.push(matchedApplyTip.id);
@@ -270,20 +325,59 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
             } else {
                 throw new Error("Apply order request responded with an error");
             }
+        } else {
+            await saveAppliedId(matchedApplyTip.id);
         }
 
         logger.detailedInfo("Calling onOrdersNotify again in 5 sec, to check there are any more apply tips...");
         await new Promise(resolve => setTimeout(resolve, 5000));
         return _onOrdersNotify.apply(this, arguments);
     }
-
-    logger.detailedInfo("Order applied successfully.");
-    logger.detailedInfo("onOrdersNotify finished.");
 }
 
-export async function onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData) {
+export async function saveOrderinfo(authToken: string, observedOrderId: number, pairData: PairData, trade_id: string | null) {
+
+    if (!trade_id) {
+        return;
+    }
+
+    const response = await FetchUtils.getUserOrdersPage(authToken, parseInt(pairData.id, 10));
+
+    logger.detailedInfo("Saving order Info...");
+
+    const orders = response?.data?.orders;
+
+    if (!orders || !(orders instanceof Array)) {
+        throw new Error("Error: error while request or orders is not array or not contained in response");
+    }
+
+    logger.detailedInfo("Updating remaining amount...");
+
+    const newObservedOrder = orders.find(e => e.id === observedOrderId);
+
+    logger.detailedInfo(`New Remaining amount: ${newObservedOrder.left} for trade_id: ${trade_id}`);
+
+
+    await Order.update({
+        remaining: newObservedOrder.left
+    }, {
+        where: {
+            trade_id: trade_id
+        }
+    });
+
+    logger.detailedInfo(`Order info saved. Remaining amount: ${newObservedOrder.left} for trade_id: ${trade_id}`);
+}
+
+export async function onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData, trade_id: string | null) {
     try {
-        return await _onOrdersNotify(authToken, observedOrderId, pairData);
+        return await _onOrdersNotify(authToken, observedOrderId, pairData, trade_id).then(async res => {
+            await saveOrderinfo(authToken, observedOrderId, pairData, trade_id).catch(err => {
+                logger.info("Order info saving failed with error, waiting for new notifications:");
+                logger.info(err);
+            });
+            return res;
+        })
     } catch (err) {
         logger.info("Order notification handler failed with error, waiting for new notifications:");
         logger.info(err);
@@ -292,6 +386,17 @@ export async function onOrdersNotify(authToken: string, observedOrderId: number,
 
 export async function getObservedOrder(authToken: string, configItem: ConfigItemParsed) {
     logger.detailedInfo("Started getObservedOrder.");
+
+    const savedOrder = await Order.findOne({
+        where: {
+            trade_id: configItem.trade_id
+        }
+    });
+
+
+    logger.detailedInfo('saved order:', savedOrder);
+
+
 
     async function fetchMatchedOrder() {
         logger.detailedInfo("Fetching user orders page...");
@@ -307,10 +412,14 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 
         const existingOrder = orders.find(e => {
             const isMatch = !!(
-                new Decimal(e.amount).equals(configItem.amount) &&
-                new Decimal(e.left).equals(configItem.amount) &&
+                (new Decimal(e.amount).equals(configItem.amount) || savedOrder?.remaining?.equals(new Decimal(e.amount))) &&
                 new Decimal(e.price).equals(configItem.price) &&
-                e.type === configItem.type
+                e.type === configItem.type &&
+                (
+                    (!savedOrder && new Decimal(e.left).equals(configItem.amount))
+                    ||
+                    (savedOrder && savedOrder?.remaining.equals(e.left))
+                )
             );
 
             return isMatch;
@@ -322,15 +431,15 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
     if (env.DELETE_ON_START) {
         const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, configItem.pairId);
         const existingOrders = existingOrdersList?.data?.orders || [];
-        
+
         for (const existingOrder of existingOrders) {
             if (new Decimal(existingOrder.price).equals(configItem.price) && existingOrder.type === configItem.type) {
                 logger.detailedInfo("Deleting existing order with same price...");
                 await FetchUtils.deleteOrder(authToken, existingOrder.id);
-    
+
             }
         }
-       
+
     }
 
 
@@ -342,19 +451,23 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
             logger.detailedInfo("getObservedOrder finished.");
             return existingOrder.id as number;
         }
-    
+
         logger.detailedInfo("Existing order not found.");
     }
 
     logger.detailedInfo("Creating new order...");
 
 
+    if (savedOrder?.remaining && savedOrder.remaining.lte(0)) {
+        throw new Error("Error: remaining amount is less than or equal to 0.");
+    }
+
     const createRes = await FetchUtils.createOrder(
         authToken,
         {
             pairId: configItem.pairId,
             type: configItem.type,
-            amount: configItem.amount.toFixed(),
+            amount: savedOrder?.remaining?.toFixed() || configItem.amount.toFixed(),
             price: configItem.price.toFixed(),
             side: "limit"
         }
@@ -362,6 +475,17 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 
     if (!createRes?.success) {
         throw new Error("Error: order creation request responded with an error: " + createRes.data);
+    }
+
+    if (!savedOrder) {
+        await Order.create({
+            pair_url: env.CUSTOM_SERVER + "/dex/trading/" + configItem.pairId.toString(),
+            amount: configItem.amount.toFixed(),
+            price: configItem.price.toFixed(),
+            type: configItem.type,
+            remaining: configItem.amount.toFixed(),
+            trade_id: configItem.trade_id
+        });
     }
 
     logger.detailedInfo("Order created.");
