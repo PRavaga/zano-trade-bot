@@ -355,11 +355,22 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 
     const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
-    logger.detailedInfo(`New Remaining amount: ${newObservedOrder.left} for trade_id: ${trade_id}`);
+    logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("*will delete from db*")} for trade_id: ${trade_id}`);
 
+
+    if (!newObservedOrder) {
+        await Order.destroy({
+            where: {
+                trade_id: trade_id
+            }
+        });
+
+        logger.detailedInfo(`Order info deleted for trade_id: ${trade_id}`);
+        return;
+    }
 
     await Order.update({
-        remaining: newObservedOrder.left
+        remaining: newObservedOrder?.left
     }, {
         where: {
             trade_id: trade_id
@@ -455,7 +466,16 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
         logger.detailedInfo("Existing order not found.");
     }
 
+    const creationParams = {
+        pairId: configItem.pairId,
+        type: configItem.type,
+        amount: savedOrder?.remaining?.toFixed() || configItem.amount.toFixed(),
+        price: configItem.price.toFixed(),
+        side: "limit" as const
+    };
+
     logger.detailedInfo("Creating new order...");
+    logger.detailedInfo(creationParams);
 
 
     if (savedOrder?.remaining && savedOrder.remaining.lte(0)) {
@@ -464,13 +484,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 
     const createRes = await FetchUtils.createOrder(
         authToken,
-        {
-            pairId: configItem.pairId,
-            type: configItem.type,
-            amount: savedOrder?.remaining?.toFixed() || configItem.amount.toFixed(),
-            price: configItem.price.toFixed(),
-            side: "limit"
-        }
+        creationParams
     );
 
     if (!createRes?.success) {

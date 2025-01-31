@@ -43,4 +43,9 @@ export default class SocketClient {
         this.socket = this.initSocket();
         return this.socket;
     }
+
+    destroySocket() {
+        this.socket.removeAllListeners();
+        this.socket.disconnect();
+    }
 }

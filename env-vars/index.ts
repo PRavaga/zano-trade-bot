@@ -97,3 +97,19 @@ export const readConfig: ConfigParsed = (() => {
         throw new Error("config.json file is not found or invalid");
     }
 })();
+
+
+export const PARSER_ENABLED = process.env.PARSER_ENABLED === "true";
+
+export const PRICE_INTERVAL_SEC = parseInt(process.env.PRICE_INTERVAL_SEC || "10", 10);
+export const PRICE_SELL_DEPTH_PERCENT = parseInt(process.env.PRICE_SELL_DEPTH_PERCENT || "10", 10);
+export const PRICE_BUY_DEPTH_PERCENT = parseInt(process.env.PRICE_BUY_DEPTH_PERCENT || "10", 10);
+export const PRICE_CHANGE_SENSITIVITY_PERCENT = parseFloat(process.env.PRICE_CHANGE_SENSITIVITY_PERCENT || "1");
+
+if (PARSER_ENABLED) {
+    if (!PRICE_INTERVAL_SEC || !PRICE_SELL_DEPTH_PERCENT || !PRICE_BUY_DEPTH_PERCENT || !PRICE_CHANGE_SENSITIVITY_PERCENT) {
+        throw new Error(
+            "PRICE_INTERVAL_SEC, PRICE_SELL_DEPTH_PERCENT, PRICE_BUY_DEPTH_PERCENT, PRICE_CHANGE_SENSITIVITY_PERCENT must be specified in .env file"
+        );
+    }
+}
