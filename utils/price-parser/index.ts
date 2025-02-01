@@ -23,8 +23,8 @@ interface Order {
 
 class XeggexParser {
 
-    private marketInfoUrl = 'https://api.xeggex.com/api/v2/market/info?id=674dd85c7017c14b13d8b92f&symbol=BANDIT/USDT';
-    private tradesUrl = 'https://api.xeggex.com/api/v2/orderbook?ticker_id=BANDIT%2FUSDT&depth=100000';
+    private marketInfoUrl = 'https://api.xeggex.com/api/v2/market/info?id=674dd85c7017c14b13d8b92f&symbol=BANDIT/ZANO';
+    private tradesUrl = 'https://api.xeggex.com/api/v2/orderbook?ticker_id=BANDIT%2FZANO&depth=100000';
     private config: Config;
 
     private marketState: MarketState = {
