@@ -355,22 +355,11 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 
     const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
-    logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("*will delete from db*")} for trade_id: ${trade_id}`);
+    logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("0 *order complited*")} for trade_id: ${trade_id}`);
 
-
-    if (!newObservedOrder) {
-        await Order.destroy({
-            where: {
-                trade_id: trade_id
-            }
-        });
-
-        logger.detailedInfo(`Order info deleted for trade_id: ${trade_id}`);
-        return;
-    }
 
     await Order.update({
-        remaining: newObservedOrder?.left
+        remaining: newObservedOrder?.left || 0
     }, {
         where: {
             trade_id: trade_id
