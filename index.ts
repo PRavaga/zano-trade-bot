@@ -126,6 +126,7 @@ async function thread(configItem: ConfigItemParsed) {
         });
 
         socket.on("delete-order", async () => {
+            console.log("DELETE ORDER", notificationParams);
             logger.info(`Order deleted message incoming via WS, starting order notification handler...`);
             await onOrdersNotify(...notificationParams);
         });
