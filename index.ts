@@ -248,9 +248,6 @@ async function thread(configItem: ConfigItemParsed) {
         }
 
 
-        await updateConfig();
-        await new Promise(resolve => setTimeout(resolve, 10000));
-            
         let lastPriceInfo: {
             buy: number | null,
             sell: number | null
