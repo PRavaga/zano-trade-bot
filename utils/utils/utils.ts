@@ -370,6 +370,8 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 }
 
 export async function onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData, trade_id: string | null) {
+    console.log("onOrdersNotify called with", observedOrderId);
+    
     try {
         return await _onOrdersNotify(authToken, observedOrderId, pairData, trade_id).then(async res => {
             await saveOrderinfo(authToken, observedOrderId, pairData, trade_id).catch(err => {
