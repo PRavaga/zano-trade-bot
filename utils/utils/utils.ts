@@ -356,7 +356,8 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
     const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
     logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("0 *order complited*")} for trade_id: ${trade_id}`);
-
+    console.log('newObservedOrder', newObservedOrder);
+    
 
     await Order.update({
         remaining: newObservedOrder?.left || 0
