@@ -105,7 +105,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         throw new Error("Error: error while request or orders is not array or not contained in response");
     }
 
-    logger.detailedInfo("Processing orders...");
+    logger.detailedInfo(`Processing orders (observedOrderId: ${observedOrderId})...`);
 
     const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
