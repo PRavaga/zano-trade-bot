@@ -366,7 +366,7 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
         }
     });
 
-    logger.detailedInfo(`Order info saved. Remaining amount: ${newObservedOrder.left} for trade_id: ${trade_id}`);
+    logger.detailedInfo(`Order info saved. Remaining amount: ${newObservedOrder?.left} for trade_id: ${trade_id}`);
 }
 
 export async function onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData, trade_id: string | null) {
