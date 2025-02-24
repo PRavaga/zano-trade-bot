@@ -1,22 +1,12 @@
-# Zano Trade Bot
+# Zano Trade Bot - Exchange edition
 
-A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zano.org)) that automates trading using [Ionic Swaps](https://docs.zano.org/docs/build/confidential-assets/ionic-swaps). The bot connects to your Zano wallet running on a remote or local server and places orders on your behalf via the Zano Trade API based on configurations provided.
-
----
-
-## Features
-- Automated trading on Zano Trade Dex using pre-configured pairs and prices.
-- Direct integration with your wallet to ensure your coins never leave your control.
-- Background trading without manual interaction.
+A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zano.org)) that automates trading using [Ionic Swaps](https://docs.zano.org/docs/build/confidential-assets/ionic-swaps). The bot connects to your Zano wallet running on a remote or local server and places orders on your behalf via the Zano Trade API based on prices fetched from exchange.
 
 ---
 
-## Prerequisites
-1. **Zano Wallet**:
-   - You need to set up a Zano wallet and enable RPC mode.
-   - Follow this guide to configure your wallet in RPC mode: [Running Daemon and Wallet in RPC Mode](https://docs.zano.org/docs/build/rpc-api/overview#running-daemon-and-wallet-in-rpc-mode-brief-guide).
+## Setting up
 
-2. **Environment Variables File**:
+**Environment Variables File**:
    - The bot requires an `.env` file with the following variables:
 
      ```env
@@ -25,6 +15,12 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      SIMPLEWALLET_PORT="10500"
      ZANOD_URL="http://37.27.100.59:10500"
      DELETE_ON_START="true"
+
+     PRICE_INTERVAL_SEC="10"
+     PRICE_SELL_DEPTH_PERCENT="50"
+     PRICE_BUY_DEPTH_PERCENT="50"
+     PRICE_CHANGE_SENSITIVITY_PERCENT="10"
+     PARSER_ENABLED="true"
      ```
 
    - Explanation of Variables:
@@ -33,8 +29,14 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      - `SIMPLEWALLET_PORT`: The RPC port your wallet is running on.
      - `ZANOD_URL`: URL and port of the Zano daemon (example uses [public node](https://docs.zano.org/docs/build/public-nodes)).
      - `DELETE_ON_START`: If set to `true`, clears all previously pending orders when the bot starts.
+     - `PRICE_INTERVAL_SEC`: Price fetch time
+     - `PRICE_SELL_DEPTH_PERCENT`:
+     - `PRICE_BUY_DEPTH_PERCENT`:
+     - `PRICE_CHANGE_SENSITIVITY_PERCENT`: Allowed slippage
+     - `PARSER_ENABLED`: If set to `true`, enables api parser
 
-3. **Price/Pair Configuration**:
+
+**Pair Configuration**:
    - Provide a JSON file with trading pair configurations:
 
      ```json
@@ -42,13 +44,11 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
          {
              "pair_url": "https://trade.zano.org/dex/trading/179",
              "amount": "6812000",
-             "price": "0.0014679976",
              "type": "SELL"
          },
          {
              "pair_url": "https://trade.zano.org/dex/trading/179",
              "amount": "6812000",
-             "price": "0.00029359952",
              "type": "BUY"
          }
      ]
@@ -59,29 +59,6 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      - `amount`: Amount of coins for the trade (in atomic units).
      - `price`: Price for the trade.
      - `type`: Trade type (`BUY` or `SELL`).
-
----
-
-## Setup and Usage
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/PRavaga/zano-trade-bot.git
-   cd zano-trade-bot
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Configure the bot:
-   - Create a `.env` file in the root directory with the required environment variables.
-   - Provide the price/pair configuration in `config.json`.
-
-4. Start the bot:
-   ```bash
-   npm start
-   ```
 
 ---
 
