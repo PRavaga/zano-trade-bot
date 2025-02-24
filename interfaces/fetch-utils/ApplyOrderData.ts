@@ -1,6 +1,6 @@
 interface ApplyOrderData {
-    id: string;
-    connected_order_id: string;
+    id: number;
+    connected_order_id: number;
     hex_raw_proposal: string;
 }
 

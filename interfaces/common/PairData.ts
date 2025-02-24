@@ -9,6 +9,7 @@ interface PairData {
     high?: number;
     low?: number;
     volume: number;
+    featured: boolean;
 }
 
 export default PairData;

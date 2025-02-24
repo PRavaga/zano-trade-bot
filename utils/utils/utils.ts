@@ -150,7 +150,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
     const matchedApplyTip = matchedApplyTipArray
         .filter(e => !ordersToIgnore.includes(e.id))
-        .reduce((prev, current) => {
+        .reduce((prev: any, current) => {
             if (newObservedOrder.type === "buy") {
                 if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
                     return prev;
@@ -227,7 +227,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
             await Order.update(
                 {
-                    appliedTo: [...prevOrder?.appliedTo, parseInt(matchedApplyTip.id, 10)]
+                    appliedTo: [...prevOrder?.appliedTo, parseInt(matchedApplyTip.id?.toString(), 10)]
                 },
                 {
                     where: {
