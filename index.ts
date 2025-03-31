@@ -7,6 +7,26 @@ import * as env from "./env-vars";
 import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
 import { ConfigItemParsed } from "./interfaces/common/Config";
 
+interface AvtiveThread {
+    socket: SocketClient;
+    id: string;
+}
+
+const activeThreads: AvtiveThread[] = []
+
+function destroyThreads() {
+    for (const thread of activeThreads) {
+        try {
+            thread.socket.getSocket().disconnect();
+            thread.socket.getSocket().removeAllListeners();
+        } catch (error) {
+            logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
+        }
+    }
+
+    activeThreads.length = 0;
+}
+
 
 const ACTIVITY_PING_INTERVAL = 15*1000;
 
@@ -14,6 +34,16 @@ async function thread(configItem: ConfigItemParsed) {
     const socketClient = new SocketClient();
     let socket = socketClient.initSocket();
 
+    const socketID = socketClient.getSocket().id;
+
+    if (!socketID) {
+        throw new Error("Socket initialization failed, socket ID is not available.");
+    }
+
+    activeThreads.push({
+        socket: socketClient,
+        id: socketID
+    });
 
     logger.detailedInfo("Starting bot...");
 
@@ -57,27 +87,50 @@ async function thread(configItem: ConfigItemParsed) {
 
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
-    
-    logger.detailedInfo("Starting activity checker...");
 
-    async function pingActivity() {
-        return FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
-        .catch(err => {
-            logger.error(`Activity checker ping failed: ${err}`);
-        });
-    }
+    (async () => {
+        logger.detailedInfo("Starting activity checker...");
+        logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
-    pingActivity();
+        async function checkThreadActivity() {  
+            if (!activeThreads.some(thread => thread.id === socketID)) {
+                return false;
+            }
 
-    setInterval(() => {
-        pingActivity();
-    }, ACTIVITY_PING_INTERVAL);
+            return true;
+        }
 
-    logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
+        while (true) {
+            try {
 
+                const threadActive = checkThreadActivity();
+                if (!threadActive) {
+                    logger.info("Thread is not active, stopping activity checker...");
+                    break;
+                }
 
-    // logger.detailedInfo("Listener will start in 10 seconds...");
-    // await new Promise(resolve => setTimeout(resolve, 10000));
+                await FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
+            } catch (error) {
+                console.log(error);
+                logger.error(`Failed to ping activity checker: ${error}`);
+
+                const threadActive = checkThreadActivity();
+                if (!threadActive) {
+                    logger.info("Thread is not active, stopping activity checker...");
+                    break;
+                }
+
+                logger.info("Restarting thread in 5 seconds...");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                destroyThreads();
+
+                return startBot();
+            }
+        
+            await new Promise(resolve => setTimeout(resolve, ACTIVITY_PING_INTERVAL));
+        }
+    })();
+
 
     await onOrdersNotify(tradeAuthToken, observedOrderId, pairData);
 
@@ -103,14 +156,11 @@ async function thread(configItem: ConfigItemParsed) {
         });
 
         socket.on("disconnect", async (reason) => {
-            logger.warn(`Socket disconnected due to ${reason}. Attempting to reconnect...`);
-            
-            try {
-                socket = socketClient.reconnectSocket();
-                setSocketListeners();
-            } catch (error) {
-                logger.error(`Reconnection attempt failed: ${error}`);
-            }
+            logger.warn(`Socket disconnected: ${reason}`);
+            logger.info("Restarting thread in 5 seconds...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            destroyThreads();
+            return startBot();
         });
     }
 
@@ -120,7 +170,7 @@ async function thread(configItem: ConfigItemParsed) {
 }
 
 
-(async () => {
+async function startBot() {
 
     for (const configItem of env.readConfig) {
         logger.detailedInfo(`Starting bot for pair ${configItem.pairId}...`);
@@ -128,4 +178,7 @@ async function thread(configItem: ConfigItemParsed) {
         await new Promise(resolve => setTimeout(resolve, 5000));
         thread(configItem);
     }
-})();
+}
+
+
+startBot();
