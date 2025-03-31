@@ -32,7 +32,7 @@ const ACTIVITY_PING_INTERVAL = 15*1000;
 
 async function thread(configItem: ConfigItemParsed) {
     const socketClient = new SocketClient();
-    let socket = socketClient.initSocket();
+    let socket = await socketClient.initSocket();
 
     const socketID = socketClient.getSocket().id;
 
