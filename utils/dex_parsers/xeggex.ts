@@ -1,18 +1,13 @@
 import * as env from "../../env-vars/index";
+import { MarketState } from "../../interfaces/common/Common";
+import logger from "../../logger";
+
 
 interface Config {
     fetchInterval: number;
     depthPercentageSell: number;
     depthPercentageBuy: number;
 }
-
-export interface MarketState {
-    marketPrice: number | null;
-    updatedAt: number | null;
-    buyPrice: number | null;
-    sellPrice: number | null;
-}
-
 interface Order {
     type: 'buy' | 'sell';
     price: string;
@@ -122,14 +117,18 @@ class XeggexParser {
     }
 
     async init() {
+        logger.detailedInfo("Xeggex parser is enabled. Initializing parser...");
         await this.updateMarketData();
         this.initService();
+        logger.detailedInfo("Xeggex parser initialized.");
     }
 
     getMarketState() {
         return this.marketState;
     }
 }
+
+export {XeggexParser};
 
 const xeggexParser = new XeggexParser({
     fetchInterval: env.PRICE_INTERVAL_SEC,
