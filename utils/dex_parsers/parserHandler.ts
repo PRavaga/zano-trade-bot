@@ -4,13 +4,18 @@ import logger from "../../logger";
 import { ConfigItemParsed } from "../../interfaces/common/Config";
 import xeggexParser, { XeggexParser } from "./xeggex";
 import { MarketState, ParserHandlerProps, ParserType, PriceInfo } from "../../interfaces/common/Common";
+import mexcParser, { MexcParser } from "./mexc";
 
-
+export interface ParserConfig {
+    fetchInterval: number;
+    depthPercentageSell: number;
+    depthPercentageBuy: number;
+}
 
 class ParserHandler {
 
     private parserType: ParserType;
-    private targetParser: XeggexParser;
+    private targetParser: XeggexParser | MexcParser;
     private lastPriceInfo: PriceInfo = {
         buy: null,
         sell: null
@@ -21,7 +26,7 @@ class ParserHandler {
         if (this.parserType === 'xeggex') {
             this.targetParser = xeggexParser;
         } else if (this.parserType === 'mexc') {
-            // mexc
+            this.targetParser = mexcParser;
         }
 
         if (!this.targetParser) {
@@ -30,7 +35,7 @@ class ParserHandler {
     }
 
     async init() {
-        this.targetParser.init();
+        await this.targetParser.init();
     }
 
     getMarketState(): MarketState {

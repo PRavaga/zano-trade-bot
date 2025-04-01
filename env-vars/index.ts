@@ -106,6 +106,15 @@ if (!allowedParserTypes.includes(PARSER_TYPE) && PARSER_ENABLED) {
     throw new Error(`PARSER_TYPE must be one of ${allowedParserTypes.join(", ")}`);
 }
 
+// export const MEXC_CLIENT = process.env.MEXC_CLIENT as string;
+// export const MEXC_SECRET = process.env.MEXC_SECRET as string;
+
+// if (PARSER_TYPE === "mexc" && (!MEXC_CLIENT || !MEXC_SECRET)) {
+//     throw new Error("MEXC_CLIENT and MEXC_SECRET must be specified in .env file when PARSER_TYPE is mexc");
+// }
+
+export const REVERSE_PAIR = process.env.REVERSE_PAIR === "true";
+
 export const PRICE_INTERVAL_SEC = parseInt(process.env.PRICE_INTERVAL_SEC || "10", 10);
 export const PRICE_SELL_DEPTH_PERCENT = parseInt(process.env.PRICE_SELL_DEPTH_PERCENT || "10", 10);
 export const PRICE_BUY_DEPTH_PERCENT = parseInt(process.env.PRICE_BUY_DEPTH_PERCENT || "10", 10);
@@ -113,7 +122,15 @@ export const PRICE_CHANGE_SENSITIVITY_PERCENT = parseFloat(process.env.PRICE_CHA
 export const ACTIVITY_PING_INTERVAL = parseInt(process.env.ACTIVITY_PING_INTERVAL || "15", 10) * 1000; // in ms
 
 if (PARSER_ENABLED) {
-    if (!PRICE_INTERVAL_SEC || !PRICE_SELL_DEPTH_PERCENT || !PRICE_BUY_DEPTH_PERCENT || !PRICE_CHANGE_SENSITIVITY_PERCENT) {
+
+    const requiredNumbers = [
+        PRICE_INTERVAL_SEC, 
+        PRICE_SELL_DEPTH_PERCENT, 
+        PRICE_BUY_DEPTH_PERCENT, 
+        PRICE_CHANGE_SENSITIVITY_PERCENT
+    ];
+
+    if (requiredNumbers.some(e => isNaN(e))) {
         throw new Error(
             "PRICE_INTERVAL_SEC, PRICE_SELL_DEPTH_PERCENT, PRICE_BUY_DEPTH_PERCENT, PRICE_CHANGE_SENSITIVITY_PERCENT must be specified in .env file"
         );

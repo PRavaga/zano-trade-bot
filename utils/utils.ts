@@ -732,3 +732,7 @@ export async function startThreadsFromConfig(config: ConfigParsed) {
         thread(configItem);
     }
 }
+
+export function toFixedDecimalNumber(value: number | string, decimalPlaces: number = 12) {
+	return parseFloat(new Decimal(value).toFixed(decimalPlaces));
+}

@@ -80,6 +80,9 @@ async function startWithParser() {
         const marketState = parserHandler.getMarketState();
         const preparedConfig = parserHandler.getConfigWithLivePrice(marketState);
 
+        
+        console.log(marketState);
+
         await startThreadsFromConfig(preparedConfig);
     }
 

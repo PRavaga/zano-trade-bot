@@ -23,4 +23,5 @@ export interface MarketState {
     updatedAt: number | null;
     buyPrice: number | null;
     sellPrice: number | null;
+    zanoPrice: number | null;
 }

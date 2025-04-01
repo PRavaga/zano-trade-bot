@@ -1,13 +1,8 @@
 import * as env from "../../env-vars/index";
 import { MarketState } from "../../interfaces/common/Common";
 import logger from "../../logger";
+import { ParserConfig } from "./parserHandler";
 
-
-interface Config {
-    fetchInterval: number;
-    depthPercentageSell: number;
-    depthPercentageBuy: number;
-}
 interface Order {
     type: 'buy' | 'sell';
     price: string;
@@ -15,12 +10,11 @@ interface Order {
     baseVolumeUSD: string;
 }
 
-
 class XeggexParser {
 
     private marketInfoUrl = 'https://api.xeggex.com/api/v2/market/info?id=674dd85c7017c14b13d8b92f&symbol=BANDIT/ZANO';
     private tradesUrl = 'https://api.xeggex.com/api/v2/orderbook?ticker_id=BANDIT%2FZANO&depth=100000';
-    private config: Config;
+    private config: ParserConfig;
 
     private marketState: MarketState = {
         marketPrice: null,
@@ -29,7 +23,7 @@ class XeggexParser {
         sellPrice: null
     }
 
-    constructor(config: Config) {
+    constructor(config: ParserConfig) {
         this.config = config;
     }
 
