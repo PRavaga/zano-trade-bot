@@ -1,6 +1,6 @@
-import * as env from "../../env-vars";
+import * as env from "../env-vars";
 import forge from "node-forge";
-import logger from "../../logger";
+import logger from "../logger";
 
 function createJWSToken(payload, secrete_str) {
     const header = { alg: 'HS256', typ: 'JWT' };

@@ -1,7 +1,7 @@
-import logger from "../../logger";
-import { fetchData, fetchZanod } from "../fetch-zano-wallet";
+import logger from "../logger";
+import { fetchData, fetchZanod } from "./walletUtils";
 import { v4 as uuidv4 } from 'uuid';
-import { addZeros } from "../utils/utils";
+import { addZeros } from "./utils";
 
 const ZANO_ID = "d6329b5b1f7c0805b5c345f4957554002a2f557845f64d7645dae0e051a6498a";
 

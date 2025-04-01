@@ -1,11 +1,11 @@
 import Decimal from "decimal.js";
-import logger from "../../logger";
-import { FetchUtils } from "../fetch-methods";
-import * as env from "./../../env-vars";
-import PairData from "../../interfaces/common/PairData";
-import { ZanoWallet } from "../zano-wallet";
-import { ConfigItemParsed } from "../../interfaces/common/Config";
-import Order from "../../schemes/Order";
+import logger from "../logger";
+import { FetchUtils } from "./fetchMethods";
+import * as env from "../env-vars";
+import PairData from "../interfaces/common/PairData";
+import { ZanoWallet } from "./zanoWallet";
+import { ConfigItemParsed } from "../interfaces/common/Config";
+import Order from "../schemes/Order";
 
 export const ordersToIgnore = [] as number[];
 

@@ -1,5 +1,5 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../database";
+import sequelize from "../database/database";
 import Decimal from "decimal.js";
 
 class Order extends Model {

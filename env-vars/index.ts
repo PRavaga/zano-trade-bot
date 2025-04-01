@@ -70,7 +70,7 @@ export const DISABLE_INFO_LOGS = process.env.DISABLE_INFO_LOGS === "true";
 
 export const readConfig: ConfigParsed = (() => {
     try {
-        const config = JSON.parse(fs.readFileSync("config.json", "utf-8"));
+        const config = JSON.parse(fs.readFileSync("./config/config.json", "utf-8"));
 
         const preparedConfig = config.map((item: ConfigItem, index: number) => {
             const parsedAmount = numToDecimal(item.amount, `CONFIG[${index}].amount`);

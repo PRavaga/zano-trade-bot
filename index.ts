@@ -1,28 +1,58 @@
-import SocketClient from "./socket-client";
-import { ZanoWallet } from "./utils/zano-wallet";
-import { FetchUtils } from "./utils/fetch-methods";
+import SocketClient from "./utils/socket";
+import { ZanoWallet } from "./utils/zanoWallet";
+import { FetchUtils } from "./utils/fetchMethods";
 import AuthParams from "./interfaces/fetch-utils/AuthParams";
 import logger from "./logger";
 import * as env from "./env-vars";
-import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils/utils";
+import { getObservedOrder, getPairData, onOrdersNotify } from "./utils/utils";
 import { ConfigItemParsed } from "./interfaces/common/Config";
-import sequelize from "./database";
+import sequelize from "./database/database";
 import Order from "./schemes/Order";
 import PairData from "./interfaces/common/PairData";
-import xeggexParser, { MarketState } from "./utils/price-parser";
+import xeggexParser, { MarketState } from "./utils/dex_parsers/xeggex";
 import Decimal from "decimal.js";
 
 
 const ACTIVITY_PING_INTERVAL = 15 * 1000;
 
-const activeSocketClients: SocketClient[] = [];
-const activeIntervals: NodeJS.Timeout[] = [];
+interface AvtiveThread {
+    socket: SocketClient;
+    id: string;
+}
+
+const activeThreads: AvtiveThread[] = [];
+
+function destroyThread(id: string) {
+    const threadIndex = activeThreads.findIndex(thread => thread.id === id);
+    if (threadIndex !== -1) {
+        const thread = activeThreads[threadIndex];
+        try {
+            thread.socket.getSocket().disconnect();
+            thread.socket.getSocket().removeAllListeners();
+        } catch (error) {
+            logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
+        }
+        activeThreads.splice(threadIndex, 1);
+    } else {
+        logger.error(`Thread with id ${id} not found`);
+    }
+}
+
 
 async function thread(configItem: ConfigItemParsed) {
     const socketClient = new SocketClient();
-    let socket = socketClient.initSocket();
+    let socket = await socketClient.initSocket();
 
-    activeSocketClients.push(socketClient);
+    const socketID = socketClient.getSocket().id;
+
+    if (!socketID) {
+        throw new Error("Socket initialization failed, socket ID is not available.");
+    }
+
+    activeThreads.push({
+        socket: socketClient,
+        id: socketID
+    });
 
     logger.detailedInfo("Starting bot...");
 
@@ -75,33 +105,50 @@ async function thread(configItem: ConfigItemParsed) {
     logger.detailedInfo(`Observed order id: ${observedOrderId}`);
 
 
-    logger.detailedInfo("Starting activity checker...");
 
-    async function pingActivity() {
+    (async () => {
+        logger.detailedInfo("Starting activity checker...");
+        logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
-        if (!observedOrderId) {
-            return;
+        async function checkThreadActivity() {  
+            if (!activeThreads.some(thread => thread.id === socketID)) {
+                return false;
+            }
+
+            return true;
         }
 
-        return FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
-            .catch(err => {
-                logger.error(`Activity checker ping failed: ${err}`);
-            });
-    }
+        while (true) {
+            try {
 
-    pingActivity();
+                const threadActive = checkThreadActivity();
+                if (!threadActive) {
+                    logger.info("Thread is not active, stopping activity checker...");
+                    break;
+                }
 
-    const activityInterval = setInterval(() => {
-        pingActivity();
-    }, ACTIVITY_PING_INTERVAL);
+                await FetchUtils.pingActivityChecker(observedOrderId, tradeAuthToken)
+            } catch (error) {
+                console.log(error);
+                logger.error(`Failed to ping activity checker: ${error}`);
 
-    activeIntervals.push(activityInterval);
+                const threadActive = checkThreadActivity();
+                if (!threadActive) {
+                    logger.info("Thread is not active, stopping activity checker...");
+                    break;
+                }
 
-    logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
+                logger.info("Restarting thread in 5 seconds...");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                destroyThread(socketID);
 
+                return thread(configItem);
+            }
+        
+            await new Promise(resolve => setTimeout(resolve, ACTIVITY_PING_INTERVAL));
+        }
+    })();
 
-    // logger.detailedInfo("Listener will start in 10 seconds...");
-    // await new Promise(resolve => setTimeout(resolve, 10000));
 
     const notificationParams: [
         string,
@@ -117,7 +164,7 @@ async function thread(configItem: ConfigItemParsed) {
 
     logger.detailedInfo("Subscribing to Zano Trade WS events...");
 
-    function setSocketListeners() {
+    function setSocketListeners(socketID: string) {
         socket.emit("in-trading", { id: configItem.pairId });
 
         socket.on("new-order", async () => {
@@ -135,26 +182,23 @@ async function thread(configItem: ConfigItemParsed) {
             logger.info(`Orders update message incoming via WS, starting order notification handler...`);
             await onOrdersNotify(...notificationParams);
         });
-
+        
         socket.on("disconnect", async (reason) => {
-            logger.warn(`Socket disconnected due to ${reason}. Attempting to reconnect...`);
-
-            try {
-                socket = socketClient.reconnectSocket();
-                setSocketListeners();
-            } catch (error) {
-                logger.error(`Reconnection attempt failed: ${error}`);
-            }
+            logger.warn(`Socket disconnected: ${reason}`);
+            logger.info("Restarting thread in 5 seconds...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            destroyThread(socketID);
+            return thread(configItem);
         });
     }
 
-    setSocketListeners();
+    setSocketListeners(socketID);
 
     logger.info("Bot started.");
 }
 
 
-(async () => {
+async function startBot() {
 
     await sequelize.sync({});
 
@@ -222,16 +266,10 @@ async function thread(configItem: ConfigItemParsed) {
 
         async function updateConfig() {
 
-            for (const element of activeSocketClients) {
-                try {
-                    element.destroySocket();
-                } catch (error) {
-                    logger.error(`Error destroying socket: ${error}`);
-                }
-            }
-
-            for (const interval of activeIntervals) {
-                clearInterval(interval);
+            logger.detailedInfo("Destroying threads...");
+            
+            for (const thread of activeThreads) {
+                destroyThread(thread.id);
             }
 
             const marketState = xeggexParser.getMarketState();
@@ -280,11 +318,6 @@ async function thread(configItem: ConfigItemParsed) {
                 const buyPriceChangePercent = Math.abs((marketState.buyPrice - lastPriceInfo.buy) / lastPriceInfo.buy) * 100;
                 const sellPriceChangePercent = Math.abs((marketState.sellPrice - lastPriceInfo.sell) / lastPriceInfo.sell) * 100;
 
-
-                // logger.detailedInfo("Buy price change since last check: " + buyPriceChangePercent);
-                // logger.detailedInfo("Sell price change: since last check: " + sellPriceChangePercent);
-                
-
                 if (
                     buyPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT || 
                     sellPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT
@@ -318,4 +351,6 @@ async function thread(configItem: ConfigItemParsed) {
             thread(configItem);
         }
     }
-})();
+}
+
+startBot();
