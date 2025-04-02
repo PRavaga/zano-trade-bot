@@ -360,6 +360,11 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 
 	const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
+	if (!newObservedOrder?.left) {
+		logger.detailedInfo("ORDER DELETION IS TEMPORARY DISABLED");
+		return;
+	}
+
 	logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("0 *order complited*")} for trade_id: ${trade_id}`);
 	console.log('newObservedOrder', newObservedOrder);
 
