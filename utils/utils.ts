@@ -439,11 +439,8 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 		const existingOrders = existingOrdersList?.data?.orders || [];
 
 		for (const existingOrder of existingOrders) {
-			if (new Decimal(existingOrder.price).equals(configItem.price) && existingOrder.type === configItem.type) {
-				logger.detailedInfo("Deleting existing order with same price...");
-				await FetchUtils.deleteOrder(authToken, existingOrder.id);
-
-			}
+			logger.detailedInfo("Deleting existing order...");
+			await FetchUtils.deleteOrder(authToken, existingOrder.id);
 		}
 
 	}
