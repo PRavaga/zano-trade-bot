@@ -1,7 +1,7 @@
 import * as env from "./env-vars";
 
 import logger from "./logger";
-import { auth, getObservedOrder, getPairData, onOrdersNotify, prepareThreadSocket, startActivityChecker, startThreadsFromConfig, syncDatabaseWithConfig, threadRestartChecker } from "./utils/utils";
+import { auth, flushOrders, getObservedOrder, getPairData, onOrdersNotify, prepareThreadSocket, startActivityChecker, startThreadsFromConfig, syncDatabaseWithConfig, threadRestartChecker } from "./utils/utils";
 import { ConfigItemParsed } from "./interfaces/common/Config";
 import sequelize from "./database/database";
 import { addActiveThread, state } from "./utils/states";
@@ -76,10 +76,17 @@ async function startWithParser() {
         for (const thread of state.activeThreads) {
             destroyThread(thread.id);
         }
+        
+        
 
         const marketState = parserHandler.getMarketState();
         const preparedConfig = parserHandler.getConfigWithLivePrice(marketState);
 
+        const { tradeAuthToken } = await auth();
+
+        for (const element of preparedConfig) {
+            await flushOrders(element.pairId, tradeAuthToken);
+        }
         
         console.log(marketState);
 

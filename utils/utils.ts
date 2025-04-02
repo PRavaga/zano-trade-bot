@@ -439,17 +439,6 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 		return existingOrder;
 	}
 
-	if (env.DELETE_ON_START) {
-		const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, configItem.pairId);
-		const existingOrders = existingOrdersList?.data?.orders || [];
-
-		for (const existingOrder of existingOrders) {
-			logger.detailedInfo("Deleting existing order...");
-			await FetchUtils.deleteOrder(authToken, existingOrder.id);
-		}
-
-	}
-
 
 	if (!env.DELETE_ON_START) {
 		const existingOrder = await fetchMatchedOrder();
@@ -737,4 +726,17 @@ export async function startThreadsFromConfig(config: ConfigParsed) {
 
 export function toFixedDecimalNumber(value: number | string, decimalPlaces: number = 12) {
 	return parseFloat(new Decimal(value).toFixed(decimalPlaces));
+}
+
+export async function flushOrders(pairId: number, authToken: string) {
+	if (env.DELETE_ON_START) {
+		const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, pairId);
+		const existingOrders = existingOrdersList?.data?.orders || [];
+
+		for (const existingOrder of existingOrders) {
+			logger.detailedInfo("Deleting existing order...");
+			await FetchUtils.deleteOrder(authToken, existingOrder.id);
+		}
+
+	}
 }
