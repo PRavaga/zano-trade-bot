@@ -2,7 +2,7 @@ import * as env from "../env-vars";
 import { io, Socket } from "socket.io-client";
 import logger from "../logger";
 import { queueThreadToRestart } from "./states";
-import { onOrdersNotify } from "./utils";
+import { checkThreadActivity, onOrdersNotify } from "./utils";
 import { ConfigItem, ConfigItemParsed } from "../interfaces/common/Config";
 import { NotificationParams } from "../interfaces/common/Common";
 import { ActiveThread } from "../interfaces/common/State";
@@ -56,7 +56,14 @@ export default class SocketClient {
         
         this.socket.on("disconnect", async (reason) => {
             logger.warn(`Socket disconnected: ${reason}`);
-            logger.info("Restarting thread in 5 seconds...");
+
+            const threadActive = checkThreadActivity(activeThreadData);
+            if (!threadActive) {
+                logger.info("Thread is not active (socket), stopping activity checker...");
+                return;
+            }
+
+            logger.info("Restarting thread in 5 seconds (socket)...");
             await new Promise(resolve => setTimeout(resolve, 5000));
             queueThreadToRestart(activeThreadData);
         });

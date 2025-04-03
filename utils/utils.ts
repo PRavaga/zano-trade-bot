@@ -533,24 +533,24 @@ export const notationToString = (notation: number | string) => {
 	return fixedValue;
 }
 
+export async function checkThreadActivity(currentThread: ActiveThread) {
+	if (!state.activeThreads.some(thread => thread.id === currentThread.id)) {
+		return false;
+	}
+
+	return true;
+}
+
 export const startActivityChecker = (currentThread: ActiveThread, observedOrderId: number, tradeAuthToken: string) => {
 	// funtion supposed to be async, we shouldn't wait for this loop
 	(async () => {
 		logger.detailedInfo("Starting activity checker...");
 		logger.detailedInfo(`Will ping activity checker every ${env.ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
-		async function checkThreadActivity() {
-			if (!state.activeThreads.some(thread => thread.id === currentThread.id)) {
-				return false;
-			}
-
-			return true;
-		}
-
 		while (true) {
 			try {
 
-				const threadActive = checkThreadActivity();
+				const threadActive = checkThreadActivity(currentThread);
 				if (!threadActive) {
 					logger.info("Thread is not active, stopping activity checker...");
 					break;
@@ -561,7 +561,7 @@ export const startActivityChecker = (currentThread: ActiveThread, observedOrderI
 				console.log(error);
 				logger.error(`Failed to ping activity checker: ${error}`);
 
-				const threadActive = checkThreadActivity();
+				const threadActive = checkThreadActivity(currentThread);
 				if (!threadActive) {
 					logger.info("Thread is not active, stopping activity checker...");
 					break;
@@ -644,13 +644,13 @@ export function destroyThread(id: string) {
 
     if (thread) {
         try {
-            thread.socket.getSocket().disconnect();
+			deleteActiveThread(thread);
+			thread.socket.getSocket().disconnect();
             thread.socket.getSocket().removeAllListeners();
         } catch (error) {
             logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
         }
-
-        deleteActiveThread(thread);
+		
         logger.info(`Thread ${thread.id} destroyed`);
     } else {
         logger.error(`Thread with id ${id} not found`);
