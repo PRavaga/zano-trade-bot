@@ -1,4 +1,5 @@
 import { ActiveThread, State } from "../interfaces/common/State";
+import logger from "../logger";
 
 export const state: State = {
     activeThreads: [],
@@ -24,6 +25,8 @@ export const queueThreadToRestart = (thread: ActiveThread) => {
 export const deleteActiveThread = (thread: ActiveThread) => {
     const threadIndex = state.activeThreads.findIndex(t => t.id === thread.id);
     
+    logger.info(`Deleting thread ${thread.id} from active threads.`);
+
     if (threadIndex !== -1) {
         state.activeThreads.splice(threadIndex, 1);
     }

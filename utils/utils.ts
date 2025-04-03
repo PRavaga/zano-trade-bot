@@ -533,12 +533,8 @@ export const notationToString = (notation: number | string) => {
 	return fixedValue;
 }
 
-export async function checkThreadActivity(currentThread: ActiveThread) {
-	if (!state.activeThreads.some(thread => thread.id === currentThread.id)) {
-		return false;
-	}
-
-	return true;
+export function checkThreadActivity(currentThread: ActiveThread) {
+	return !!state.activeThreads.some(thread => thread.id === currentThread.id)
 }
 
 export const startActivityChecker = (currentThread: ActiveThread, observedOrderId: number, tradeAuthToken: string) => {
@@ -647,6 +643,7 @@ export function destroyThread(id: string) {
 			deleteActiveThread(thread);
 			thread.socket.getSocket().disconnect();
             thread.socket.getSocket().removeAllListeners();
+			logger.info(`Thread ${thread.id} destroyed [destroyThread()]`);
         } catch (error) {
             logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
         }
@@ -717,11 +714,21 @@ export async function syncDatabaseWithConfig() {
 }
 
 export async function startThreadsFromConfig(config: ConfigParsed) {
+
+	const promiseList = [] as Promise<any>[];
+
     for (const configItem of config) {
         logger.detailedInfo(`Starting bot for pair ${configItem.pairId}...`);
         logger.detailedInfo(`Config: ${JSON.stringify(configItem)}`);
-        thread(configItem);
+        promiseList.push(new Promise(async (resolve) => {
+			await thread(configItem);
+			resolve(true);
+		}));
     }
+
+	await Promise.all(promiseList).then(() => {
+		logger.info("All threads started!");
+	});
 }
 
 export function toFixedDecimalNumber(value: number | string, decimalPlaces: number = 12) {

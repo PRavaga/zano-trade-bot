@@ -45,7 +45,7 @@ export default class SocketClient {
 
         this.socket.on("delete-order", async () => {
             console.log("DELETE ORDER", notificationParams);
-            logger.info(`Order deleted message incoming via WS, starting order notification handler...`);
+            logger.info(`Order deleted message incoming via WS (${activeThreadData.id}), starting order notification handler...`);
             await onOrdersNotify(...notificationParams);
         });
 
@@ -58,6 +58,9 @@ export default class SocketClient {
             logger.warn(`Socket disconnected: ${reason}`);
 
             const threadActive = checkThreadActivity(activeThreadData);
+
+            logger.info(`Thread active: ${threadActive} (${activeThreadData.id})`);
+
             if (!threadActive) {
                 logger.info("Thread is not active (socket), stopping activity checker...");
                 return;

@@ -15,6 +15,7 @@ export async function thread(configItem: ConfigItemParsed) {
     const { socketClient, activeThreadData } = await prepareThreadSocket();
     addActiveThread(activeThreadData)
 
+    logger.info(`Starting thread with id ${activeThreadData.id}...`);
 
     // auth and create/find order
     const { tradeAuthToken } = await auth();
@@ -73,10 +74,16 @@ async function startWithParser() {
 
         logger.detailedInfo("Destroying threads...");
 
-        for (const thread of state.activeThreads) {
+        const cachedActiveThreads = JSON.parse(JSON.stringify(state.activeThreads.map(e => ({
+            id: e.id
+        }))));
+
+        for (const thread of cachedActiveThreads) {
+            logger.warn(`Destroying thread ${thread.id}...`);
             destroyThread(thread.id);
         }
         
+        logger.info("All threads destroyed!");
         
 
         const marketState = parserHandler.getMarketState();
