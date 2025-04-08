@@ -106,3 +106,106 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 - [Zano Documentation](https://docs.zano.org)
 - [Ionic Swaps Overview](https://docs.zano.org/docs/build/confidential-assets/ionic-swaps)
 
+---
+
+## RestAPI ENDPOINTS
+**base URL** - [https://trade.zano.org]
+
+### 1. **Authenticate in system**:
+-``METHOD``: 'POST'  
+-`PATH`: `/api/auth`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   pairId: number,  
+}
+```
+
+### 2. **Get page of user's orders**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/orders/get-user-page`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   pairId: number,  
+}
+```
+
+### 3. **Create order**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/orders/create`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   orderData: CreateOrderData   
+}
+```
+
+### 4. **Delete user's order**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/orders/cancel`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   orderId: number,  
+}
+```
+
+### 5. **Apply user's order**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/orders/apply-order`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   orderData: ApplyOrderData, 
+}  
+```
+
+### 6. **Сonfirm transaction**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/transactions/confirm`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   transactionId: number, 
+}  
+```
+
+### 7. **Get info about a DEX trading pair**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/dex/get-pair`  
+-`BODY`: 
+```typescript
+{  
+   id: number 
+}  
+```
+
+### 8. **Ping activity checker**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/dex/renew-bot`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   orderId: number, 
+}  
+```
+
+### 9. **Get active Tx by orders' Ids**
+-`METHOD`: 'POST'  
+-`PATH`: `/api/transactions/get-active-tx-by-orders-ids`  
+-`BODY`: 
+```typescript
+{  
+   token: string,  
+   firstOrderId: number, 
+   secondOrderId: number, 
+}  
+```
