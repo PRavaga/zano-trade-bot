@@ -11,8 +11,8 @@ export interface PriceInfo {
     sell: number | null;
 }
 
-export type ParserType = 'xeggex' | 'mexc';
-export const allowedParserTypes: ParserType[] = ['xeggex', 'mexc'];
+export type ParserType = 'mexc';
+export const allowedParserTypes: ParserType[] = ['mexc'];
 
 export interface ParserHandlerProps {
     type: ParserType;
@@ -24,4 +24,6 @@ export interface MarketState {
     buyPrice: number | null;
     sellPrice: number | null;
     zanoPrice: number | null;
+    depthToSell: number | null;
+    depthToBuy: number | null;
 }

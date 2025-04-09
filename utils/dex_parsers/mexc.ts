@@ -25,7 +25,9 @@ class MexcParser {
         updatedAt: null,
         buyPrice: null,
         sellPrice: null,
-        zanoPrice: null
+        zanoPrice: null,
+        depthToSell: null,
+        depthToBuy: null,
     }
 
     constructor(config: ParserConfig) {
@@ -55,26 +57,20 @@ class MexcParser {
     
 
     private async fetchOrders() {
-        function calculateTargetPrice(orders: Order[], depthPercentage: number, type: 'buy' | 'sell'): number | null {
-    
+
+        function calcDepth(orders: Order[], type: 'buy' | 'sell', targetPrice: number, zanoPrice: number) {
             const volumeCalcTarget = type === 'buy' ? 'baseVolumeUSD' : 'baseVolume';
     
-            const totalVolume = orders.reduce((sum, order) => sum + parseFloat(order[volumeCalcTarget]), 0);
-            const targetVolume = totalVolume * (depthPercentage / 100);
-    
-            let accumulatedVolume = 0;
-            let targetPrice: number | null = null;
-    
-            for (const order of orders) {
-                accumulatedVolume += parseFloat(order[volumeCalcTarget]);
-                
-                if (accumulatedVolume >= targetVolume) {
-                    targetPrice = parseFloat(order.price);
-                    break;
+            const volumeToTargetPrice = orders.reduce((sum, order) => {
+                if (parseFloat(order.price) >= targetPrice && type === 'buy') {
+                    return sum + parseFloat(order[volumeCalcTarget]);
+                } else if (parseFloat(order.price) <= targetPrice && type === 'sell') {
+                    return sum + parseFloat(order[volumeCalcTarget]) * zanoPrice
                 }
-            }
-    
-            return targetPrice;
+                return sum;
+            }, 0);
+
+            return volumeToTargetPrice;
         }
     
         try {
@@ -97,31 +93,49 @@ class MexcParser {
                 baseVolumeUSD: parseFloat(e[1]) * parseFloat(e[0])
             }))
     
-
-            const calculatedBuy = calculateTargetPrice(buyOrders, this.config.depthPercentageBuy, 'buy');
-            const calculatedSell = calculateTargetPrice(sellOrders, this.config.depthPercentageSell, 'sell');
-
-
             if (
-                calculatedBuy === null || 
-                calculatedSell === null || 
                 !this.marketState.zanoPrice || 
                 !this.marketState.marketPrice
             ) {
                 throw new Error("Failed to calculate target prices");
             }
 
-            const divider = new Decimal(this.marketState.zanoPrice);
+            // const normolizedBuy = new Decimal(calculatedBuy).div(divider);
+            // const normolizedSell = new Decimal(calculatedSell).div(divider);
 
-            const normolizedBuy = new Decimal(calculatedBuy).div(divider);
-            const normolizedSell = new Decimal(calculatedSell).div(divider);
+            // const reverseDivider = process.env.REVERSE_PAIR ? 
+            //     new Decimal(this.marketState.marketPrice) : 1;
+
+
+            const divider = new Decimal(this.marketState.zanoPrice);
+            const marketPrice = this.marketState.marketPrice;
+
+            const calculatedBuy =  new Decimal(marketPrice).minus(
+                (new Decimal(marketPrice).div(100)).mul(this.config.percentageBuy)
+            ).toNumber();
+
+            const calculatedSell = new Decimal(marketPrice).plus(
+                (new Decimal(marketPrice).div(100)).mul(this.config.percentageSell)
+            ).toNumber();
+
+
+            const normalizedBuy = new Decimal(calculatedBuy).div(divider).toNumber();
+            const normalizedSell = new Decimal(calculatedSell).div(divider).toNumber();
 
             const reverseDivider = process.env.REVERSE_PAIR ? 
                 new Decimal(this.marketState.marketPrice) : 1;
-            
+        
+            this.marketState.buyPrice = new Decimal(normalizedBuy).div(reverseDivider).toNumber();
+            this.marketState.sellPrice = new Decimal(normalizedSell).div(reverseDivider).toNumber();
 
-            this.marketState.buyPrice = toFixedDecimalNumber(normolizedBuy.div(reverseDivider).toNumber());
-            this.marketState.sellPrice = toFixedDecimalNumber(normolizedSell.div(reverseDivider).toNumber());
+            const calculatedDepthToBuy = calcDepth(buyOrders, 'buy', calculatedBuy, this.marketState.zanoPrice);
+            const calculatedDepthToSell = calcDepth(sellOrders, 'sell', calculatedSell, this.marketState.zanoPrice);
+
+            const normalizedDepthToBuy = new Decimal(calculatedDepthToBuy).div(divider).toNumber();
+            const normalizedDepthToSell = new Decimal(calculatedDepthToSell).div(divider).toNumber();
+
+            this.marketState.depthToBuy = new Decimal(normalizedDepthToBuy).div(reverseDivider).toNumber();
+            this.marketState.depthToSell = new Decimal(normalizedDepthToSell).div(reverseDivider).toNumber();
 
             return true;
         } catch (error) {
@@ -193,8 +207,8 @@ export { MexcParser };
 
 const mexcParser = new MexcParser({
     fetchInterval: env.PRICE_INTERVAL_SEC,
-    depthPercentageSell: env.PRICE_SELL_DEPTH_PERCENT,
-    depthPercentageBuy: env.PRICE_BUY_DEPTH_PERCENT
+    percentageSell: env.PRICE_SELL_PERCENT,
+    percentageBuy: env.PRICE_BUY_PERCENT
 });
 
 

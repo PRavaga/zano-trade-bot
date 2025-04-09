@@ -116,8 +116,8 @@ if (!allowedParserTypes.includes(PARSER_TYPE) && PARSER_ENABLED) {
 export const REVERSE_PAIR = process.env.REVERSE_PAIR === "true";
 
 export const PRICE_INTERVAL_SEC = parseInt(process.env.PRICE_INTERVAL_SEC || "10", 10);
-export const PRICE_SELL_DEPTH_PERCENT = parseInt(process.env.PRICE_SELL_DEPTH_PERCENT || "10", 10);
-export const PRICE_BUY_DEPTH_PERCENT = parseInt(process.env.PRICE_BUY_DEPTH_PERCENT || "10", 10);
+export const PRICE_SELL_PERCENT = parseInt(process.env.PRICE_SELL_PERCENT || "10", 10);
+export const PRICE_BUY_PERCENT = parseInt(process.env.PRICE_BUY_PERCENT || "10", 10);
 export const PRICE_CHANGE_SENSITIVITY_PERCENT = parseFloat(process.env.PRICE_CHANGE_SENSITIVITY_PERCENT || "1");
 export const ACTIVITY_PING_INTERVAL = parseInt(process.env.ACTIVITY_PING_INTERVAL || "15", 10) * 1000; // in ms
 
@@ -125,14 +125,14 @@ if (PARSER_ENABLED) {
 
     const requiredNumbers = [
         PRICE_INTERVAL_SEC, 
-        PRICE_SELL_DEPTH_PERCENT, 
-        PRICE_BUY_DEPTH_PERCENT, 
+        PRICE_SELL_PERCENT, 
+        PRICE_BUY_PERCENT, 
         PRICE_CHANGE_SENSITIVITY_PERCENT
     ];
 
     if (requiredNumbers.some(e => isNaN(e))) {
         throw new Error(
-            "PRICE_INTERVAL_SEC, PRICE_SELL_DEPTH_PERCENT, PRICE_BUY_DEPTH_PERCENT, PRICE_CHANGE_SENSITIVITY_PERCENT must be specified in .env file"
+            "PRICE_INTERVAL_SEC, PRICE_SELL_PERCENT, PRICE_BUY_PERCENT, PRICE_CHANGE_SENSITIVITY_PERCENT must be specified in .env file"
         );
     }
 }

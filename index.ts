@@ -94,8 +94,6 @@ async function startWithParser() {
         for (const element of preparedConfig) {
             await flushOrders(element.pairId, tradeAuthToken);
         }
-        
-        console.log(marketState);
 
         await startThreadsFromConfig(preparedConfig);
     }

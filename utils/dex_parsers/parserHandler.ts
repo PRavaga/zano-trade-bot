@@ -2,20 +2,19 @@ import Decimal from "decimal.js";
 import * as env from "../../env-vars";
 import logger from "../../logger";
 import { ConfigItemParsed } from "../../interfaces/common/Config";
-import xeggexParser, { XeggexParser } from "./xeggex";
 import { MarketState, ParserHandlerProps, ParserType, PriceInfo } from "../../interfaces/common/Common";
 import mexcParser, { MexcParser } from "./mexc";
 
 export interface ParserConfig {
     fetchInterval: number;
-    depthPercentageSell: number;
-    depthPercentageBuy: number;
+    percentageSell: number;
+    percentageBuy: number;
 }
 
 class ParserHandler {
 
     private parserType: ParserType;
-    private targetParser: XeggexParser | MexcParser;
+    private targetParser: MexcParser;
     private lastPriceInfo: PriceInfo = {
         buy: null,
         sell: null
@@ -23,9 +22,7 @@ class ParserHandler {
 
     constructor(props: ParserHandlerProps) {
         this.parserType = props.type;
-        if (this.parserType === 'xeggex') {
-            this.targetParser = xeggexParser;
-        } else if (this.parserType === 'mexc') {
+        if (this.parserType === 'mexc') {
             this.targetParser = mexcParser;
         }
 
@@ -60,7 +57,8 @@ class ParserHandler {
 
             return {
                 ...item,
-                price: new Decimal(newPrice)
+                price: new Decimal(newPrice),
+                marketState: this.getMarketState(),
             }
         }).filter(e => !!e);
 

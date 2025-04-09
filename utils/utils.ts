@@ -11,6 +11,7 @@ import { deleteActiveThread, queueThreadToRestart, state } from "./states";
 import SocketClient from "./socket";
 import AuthParams from "../interfaces/fetch-utils/AuthParams";
 import { thread } from "..";
+import { fetchZanod } from "./walletUtils";
 
 export const ordersToIgnore = [] as number[];
 
@@ -360,24 +361,51 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 
 	const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
-	// if (!newObservedOrder?.left) {
-	// 	logger.detailedInfo("ORDER DELETION IS TEMPORARY DISABLED");
-	// 	return;
-	// }
 
-	logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("0 *order complited*")} for trade_id: ${trade_id}`);
-	console.log('newObservedOrder', newObservedOrder);
+	if (!env.PARSER_ENABLED) {
+
+		logger.detailedInfo(`New Remaining amount: ${newObservedOrder?.left || ("0 *order complited*")} for trade_id: ${trade_id}`);
+		console.log('newObservedOrder', newObservedOrder);
 
 
-	await Order.update({
-		remaining: newObservedOrder?.left || 0
-	}, {
-		where: {
-			trade_id: trade_id
+		await Order.update({
+			remaining: newObservedOrder?.left || 0
+		}, {
+			where: {
+				trade_id: trade_id
+			}
+		});
+
+		logger.detailedInfo(`Order info saved. Remaining amount: ${newObservedOrder?.left} for trade_id: ${trade_id}`);
+	} else {
+		const spent = new Decimal(newObservedOrder?.amount || '0')
+			.minus(new Decimal(newObservedOrder?.left || '0'))
+			.toNumber();
+
+
+		const existingOrder = await Order.findOne({
+			where: {
+				trade_id: trade_id
+			}
+		});
+
+		if (!existingOrder) {
+			throw new Error(`Order not found in the database (${trade_id})!`);
 		}
-	});
 
-	logger.detailedInfo(`Order info saved. Remaining amount: ${newObservedOrder?.left} for trade_id: ${trade_id}`);
+		const newRemaining = new Decimal(existingOrder.remaining).minus(spent);
+
+
+		await Order.update({
+			remaining: newRemaining.gt(0) ? newRemaining?.toString() : '0',
+		}, {
+			where: {
+				trade_id: trade_id
+			}
+		});
+
+		logger.detailedInfo(`Order info saved. Remaining: ${newRemaining?.toString()} for trade_id: ${trade_id}`);
+	}
 }
 
 export async function onOrdersNotify(authToken: string, observedOrderId: number, pairData: PairData, trade_id: string | null) {
@@ -409,7 +437,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 
 
 
-	async function fetchMatchedOrder() {
+	async function fetchMatchedOrder(expectedAmount: Decimal, expectedPrice: Decimal) {
 		logger.detailedInfo("Fetching user orders page...");
 		const response = await FetchUtils.getUserOrdersPage(authToken, configItem.pairId);
 
@@ -423,14 +451,9 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 
 		const existingOrder = orders.find(e => {
 			const isMatch = !!(
-				(new Decimal(e.amount).equals(configItem.amount) || savedOrder?.remaining?.equals(new Decimal(e.amount))) &&
-				new Decimal(e.price).equals(configItem.price) &&
+				new Decimal(e.price).equals(expectedPrice) &&
 				e.type === configItem.type &&
-				(
-					(!savedOrder && new Decimal(e.left).equals(configItem.amount))
-					||
-					(savedOrder && savedOrder?.remaining.equals(e.left))
-				)
+				expectedAmount.equals(e.left)
 			);
 
 			return isMatch;
@@ -439,24 +462,41 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 		return existingOrder;
 	}
 
+	const pairData = await getPairData(configItem.pairId);
 
-	if (!env.DELETE_ON_START) {
-		const existingOrder = await fetchMatchedOrder();
+	const asset_dp = await fetchZanod("get_asset_info", {
+		asset_id: pairData.first_currency.asset_id
+	})
+		.then(r => r.json())
+		.then(r => r.result.asset_descriptor.decimal_point);
 
-		if (existingOrder) {
-			logger.detailedInfo("Found existing order.");
-			logger.detailedInfo("getObservedOrder finished.");
-			return existingOrder.id as number;
-		}
 
-		logger.detailedInfo("Existing order not found.");
+	if (typeof asset_dp !== "number") {
+		throw new Error("Error: asset decimal point is not a number");
 	}
+
+
+	const maxAmountCoin = new Decimal(savedOrder?.remaining || configItem.amount);
+
+	const maxDepthAmountZano = configItem.type === "buy" ?
+		new Decimal(configItem.marketState?.depthToBuy || 0) :
+		new Decimal(configItem.marketState?.depthToSell || 0);
+
+	const maxDepthAmountCoin = maxDepthAmountZano.div(configItem.price);
+	const orderAmount = Decimal.min(maxAmountCoin, maxDepthAmountCoin);
+
+	const targetAmount = trimDecimalToLength(
+		env.PARSER_ENABLED ? orderAmount.toFixed(asset_dp) : maxAmountCoin.toFixed(asset_dp)
+	);
+
+	const targetPrice = configItem.price.toFixed(asset_dp);
+
 
 	const creationParams = {
 		pairId: configItem.pairId,
 		type: configItem.type,
-		amount: savedOrder?.remaining?.toFixed() || configItem.amount.toFixed(),
-		price: configItem.price.toFixed(),
+		amount: targetAmount,
+		price: targetPrice,
 		side: "limit" as const
 	};
 
@@ -472,6 +512,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 		authToken,
 		creationParams
 	);
+
 
 	if (!createRes?.success) {
 		throw new Error("Error: order creation request responded with an error: " + createRes.data);
@@ -491,7 +532,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 	logger.detailedInfo("Order created.");
 	logger.detailedInfo("Getting newly created order...");
 
-	const matchedOrder = await fetchMatchedOrder();
+	const matchedOrder = await fetchMatchedOrder(new Decimal(targetAmount), new Decimal(targetPrice));
 
 	if (!matchedOrder) {
 		throw new Error("Error: newly created order not found.");
@@ -636,22 +677,22 @@ export const auth = async () => {
 	}
 }
 export function destroyThread(id: string) {
-    const thread = state.activeThreads.find(thread => thread.id === id);
+	const thread = state.activeThreads.find(thread => thread.id === id);
 
-    if (thread) {
-        try {
+	if (thread) {
+		try {
 			deleteActiveThread(thread);
 			thread.socket.getSocket().disconnect();
-            thread.socket.getSocket().removeAllListeners();
+			thread.socket.getSocket().removeAllListeners();
 			logger.info(`Thread ${thread.id} destroyed [destroyThread()]`);
-        } catch (error) {
-            logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
-        }
-		
-        logger.info(`Thread ${thread.id} destroyed`);
-    } else {
-        logger.error(`Thread with id ${id} not found`);
-    }
+		} catch (error) {
+			logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
+		}
+
+		logger.info(`Thread ${thread.id} destroyed`);
+	} else {
+		logger.error(`Thread with id ${id} not found`);
+	}
 }
 
 
@@ -688,43 +729,43 @@ export async function syncDatabaseWithConfig() {
 	const allSavedorders = await Order.findAll();
 
 
-    for (const element of allSavedorders) {
-        const configItem = env.readConfig.find(configItem => configItem.trade_id === element.trade_id);
+	for (const element of allSavedorders) {
+		const configItem = env.readConfig.find(configItem => configItem.trade_id === element.trade_id);
 
-        if (!configItem) {
-            await element.destroy();
-            continue;
-        }
+		if (!configItem) {
+			await element.destroy();
+			continue;
+		}
 
-        const elementPairid = element.pair_url?.split("/").at(-1);
+		const elementPairid = element.pair_url?.split("/").at(-1);
 
-        if (
-            (!element.price.equals(configItem.price) && !env.PARSER_ENABLED) ||
-            (!elementPairid || parseInt(elementPairid, 10) !== configItem.pairId)
-            || !element.amount.equals(configItem.amount)
-        ) {
-            logger.detailedInfo(`Deleting saved order due to price or pair_id or amount mismatch`);
-            await element.destroy();
-            continue;
-        }
+		if (
+			(!element.price.equals(configItem.price) && !env.PARSER_ENABLED) ||
+			(!elementPairid || parseInt(elementPairid, 10) !== configItem.pairId)
+			|| !element.amount.equals(configItem.amount)
+		) {
+			logger.detailedInfo(`Deleting saved order due to price or pair_id or amount mismatch`);
+			await element.destroy();
+			continue;
+		}
 
-        logger.detailedInfo(`Found saved order for pair ${configItem.pairId}...`);
+		logger.detailedInfo(`Found saved order for pair ${configItem.pairId}...`);
 
-    }
+	}
 }
 
 export async function startThreadsFromConfig(config: ConfigParsed) {
 
 	const promiseList = [] as Promise<any>[];
 
-    for (const configItem of config) {
-        logger.detailedInfo(`Starting bot for pair ${configItem.pairId}...`);
-        logger.detailedInfo(`Config: ${JSON.stringify(configItem)}`);
-        promiseList.push(new Promise(async (resolve) => {
+	for (const configItem of config) {
+		logger.detailedInfo(`Starting bot for pair ${configItem.pairId}...`);
+		logger.detailedInfo(`Config: ${JSON.stringify(configItem)}`);
+		promiseList.push(new Promise(async (resolve) => {
 			await thread(configItem);
 			resolve(true);
 		}));
-    }
+	}
 
 	await Promise.all(promiseList).then(() => {
 		logger.info("All threads started!");
@@ -736,14 +777,21 @@ export function toFixedDecimalNumber(value: number | string, decimalPlaces: numb
 }
 
 export async function flushOrders(pairId: number, authToken: string) {
-	if (env.DELETE_ON_START) {
-		const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, pairId);
-		const existingOrders = existingOrdersList?.data?.orders || [];
+	const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, pairId);
+	const existingOrders = existingOrdersList?.data?.orders || [];
 
-		for (const existingOrder of existingOrders) {
-			logger.detailedInfo("Deleting existing order...");
-			await FetchUtils.deleteOrder(authToken, existingOrder.id);
-		}
-
+	for (const existingOrder of existingOrders) {
+		logger.detailedInfo("Deleting existing order...");
+		await FetchUtils.deleteOrder(authToken, existingOrder.id);
 	}
 }
+
+export function trimDecimalToLength(str: string, maxLength: number = 21) {
+	if (str.length <= maxLength) return str;
+	const [intPart, decPart = ''] = str.split(".");
+	const intLength = intPart.length;
+	const available = maxLength - intLength - 1;
+	if (available <= 0) return intPart;
+	return intPart + "." + decPart.slice(0, available);
+}
+
