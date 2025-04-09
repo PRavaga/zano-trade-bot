@@ -382,6 +382,8 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 			.minus(new Decimal(newObservedOrder?.left || '0'))
 			.toNumber();
 
+		logger.detailedInfo(`Spent amount: ${spent} for trade_id: ${trade_id}`);
+		
 
 		const existingOrder = await Order.findOne({
 			where: {
