@@ -399,7 +399,8 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 
 
 		await Order.update({
-			remaining: newRemaining.gt(0) ? newRemaining?.toString() : '0',
+			// remaining: newRemaining.gt(0) ? newRemaining?.toString() : '0',
+			remainin: existingOrder.remaining,
 		}, {
 			where: {
 				trade_id: trade_id
