@@ -112,20 +112,28 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 **base URL** - [https://trade.zano.org]
 
 ### 1. **Authenticate in system**:
--``METHOD``: 'POST'  
--`PATH`: `/api/auth`  
--`BODY`: 
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/auth`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
-   token: string,  
-   pairId: number,  
+   data: {
+      address: string,  
+      alias: string,  
+      message: string,  
+      signature: string,
+   },    
+   neverExpires: boolean,    
 }
 ```
 
-### 2. **Get page of user's orders**
--`METHOD`: 'POST'  
--`PATH`: `/api/orders/get-user-page`  
--`BODY`: 
+>Explanation of Fields:  
+     - `data`: is a result of calling method ```async ZanoWallet.getWalletData()```. *This method will be invoked automatically on bot startup*
+
+### 2. **Get page of your orders**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/get-user-page`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
@@ -134,9 +142,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 
 ### 3. **Create order**
--`METHOD`: 'POST'  
--`PATH`: `/api/orders/create`  
--`BODY`: 
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/create`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
@@ -144,10 +152,10 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 }
 ```
 
-### 4. **Delete user's order**
--`METHOD`: 'POST'  
--`PATH`: `/api/orders/cancel`  
--`BODY`: 
+### 4. **Delete your order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/cancel`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
@@ -155,10 +163,10 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 }
 ```
 
-### 5. **Apply user's order**
--`METHOD`: 'POST'  
--`PATH`: `/api/orders/apply-order`  
--`BODY`: 
+### 5. **Apply your order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/apply-order`<br> 
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
@@ -167,9 +175,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 
 ### 6. **Сonfirm transaction**
--`METHOD`: 'POST'  
--`PATH`: `/api/transactions/confirm`  
--`BODY`: 
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/transactions/confirm`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
@@ -178,9 +186,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 
 ### 7. **Get info about a DEX trading pair**
--`METHOD`: 'POST'  
--`PATH`: `/api/dex/get-pair`  
--`BODY`: 
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/dex/get-pair`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    id: number 
@@ -188,9 +196,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 
 ### 8. **Ping activity checker**
--`METHOD`: 'POST'  
--`PATH`: `/api/dex/renew-bot`  
--`BODY`: 
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/dex/renew-bot`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
@@ -199,9 +207,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 
 ### 9. **Get active Tx by orders' Ids**
--`METHOD`: 'POST'  
--`PATH`: `/api/transactions/get-active-tx-by-orders-ids`  
--`BODY`: 
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/transactions/get-active-tx-by-orders-ids`<br>  
+- `BODY`:<br> 
 ```typescript
 {  
    token: string,  
