@@ -20,7 +20,8 @@ class XeggexParser {
         marketPrice: null,
         updatedAt: null,
         buyPrice: null,
-        sellPrice: null
+        sellPrice: null,
+        zanoPrice: null,
     }
 
     constructor(config: ParserConfig) {
