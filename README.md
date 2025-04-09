@@ -102,7 +102,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 }
 ```
 >Explanation of Fields:  
->- `data`: is a result of calling method ```async ZanoWallet.getWalletData()```. *This method will be invoked automatically on bot startup*
+>- To get ```data``` you should call [window.zano.request('GET_WALLET_DATA')](https://docs.zano.org/docs/build/zano-companion/get-wallet-data/#request) method from Zano extension.
+
 #### Response:
 ```typescript
    success: boolean;
@@ -218,7 +219,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 }  
 ```
 >Explanation of Fields:  
->- get `hex_raw_proposal` by creating [ionic swap proposal](https://docs.zano.org/docs/build/rpc-api/wallet-rpc-api/ionic_swap_generate_proposal/) via Zano wallet API;
+>- to get `hex_raw_proposal` create [ionic swap proposal](https://docs.zano.org/docs/build/rpc-api/wallet-rpc-api/ionic_swap_generate_proposal/) via Zano wallet API;
+>- hex_raw_proposal - Hex-encoded proposal raw data(encrypted with common shared key). Includes half-created transaction template and some extra information that would be needed counterparty to finialize and sign transaction
 #### Response:
 ```typescript
    success: boolean;
@@ -254,7 +256,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 ---
 
-### 8. **Ping activity checker**
+### 8. **Ping activity checker**   
+*👍 You should call this method every 10 seconds to keep ``instant`` icon  ![instant icon](./assets/images/instant.jpg)*
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/dex/renew-bot`<br>  
 #### Request:  
