@@ -106,3 +106,114 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 - [Zano Documentation](https://docs.zano.org)
 - [Ionic Swaps Overview](https://docs.zano.org/docs/build/confidential-assets/ionic-swaps)
 
+---
+
+## RestAPI ENDPOINTS
+**base URL** - [https://trade.zano.org]
+
+### 1. **Authenticate in system**:
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/auth`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   data: {
+      address: string,  
+      alias: string,  
+      message: string,  
+      signature: string,
+   },    
+   neverExpires: boolean,    
+}
+```
+
+>Explanation of Fields:  
+     - `data`: is a result of calling method ```async ZanoWallet.getWalletData()```. *This method will be invoked automatically on bot startup*
+
+### 2. **Get page of your orders**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/get-user-page`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   pairId: number,  
+}
+```
+
+### 3. **Create order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/create`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   orderData: CreateOrderData   
+}
+```
+
+### 4. **Delete your order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/cancel`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   orderId: number,  
+}
+```
+
+### 5. **Apply your order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/apply-order`<br> 
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   orderData: ApplyOrderData, 
+}  
+```
+
+### 6. **Сonfirm transaction**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/transactions/confirm`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   transactionId: number, 
+}  
+```
+
+### 7. **Get info about a DEX trading pair**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/dex/get-pair`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   id: number 
+}  
+```
+
+### 8. **Ping activity checker**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/dex/renew-bot`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   orderId: number, 
+}  
+```
+
+### 9. **Get active Tx by orders' Ids**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/transactions/get-active-tx-by-orders-ids`<br>  
+- `BODY`:<br> 
+```typescript
+{  
+   token: string,  
+   firstOrderId: number, 
+   secondOrderId: number, 
+}  
+```
