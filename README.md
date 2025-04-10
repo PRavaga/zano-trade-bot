@@ -17,8 +17,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      DELETE_ON_START="true"
 
      PRICE_INTERVAL_SEC="10"
-     PRICE_SELL_DEPTH_PERCENT="50"
-     PRICE_BUY_DEPTH_PERCENT="50"
+     PRICE_SELL_PERCENT="5"
+     PRICE_BUY_PERCENT="5"
      PRICE_CHANGE_SENSITIVITY_PERCENT="10"
      PARSER_ENABLED="true"
      ```
@@ -28,10 +28,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      - `API_TOKEN`: Your API token for authenticating with the trade bot (leave blank if not required).
      - `SIMPLEWALLET_PORT`: The RPC port your wallet is running on.
      - `ZANOD_URL`: URL and port of the Zano daemon (example uses [public node](https://docs.zano.org/docs/build/public-nodes)).
-     - `DELETE_ON_START`: If set to `true`, clears all previously pending orders when the bot starts.
      - `PRICE_INTERVAL_SEC`: Price fetch time
-     - `PRICE_SELL_DEPTH_PERCENT`:
-     - `PRICE_BUY_DEPTH_PERCENT`:
+     - `PRICE_SELL_PERCENT`: % to add to the price for selling.
+     - `PRICE_BUY_PERCENT`: % to subtract from the price for buying.
      - `PRICE_CHANGE_SENSITIVITY_PERCENT`: Allowed slippage
      - `PARSER_ENABLED`: If set to `true`, enables api parser
 
@@ -62,21 +61,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 
 ---
 
-## Documentation Articles
-
-### 1. **Setting Up Your Wallet in RPC Mode**
-   - Link: [Running Daemon and Wallet in RPC Mode](https://docs.zano.org/docs/build/rpc-api/overview#running-daemon-and-wallet-in-rpc-mode-brief-guide)
-
-### 2. **Environment Variables Explained**
-   - Detailed guide on configuring the `.env` file and its variables.
-
-### 3. **Creating Price/Pair Configurations**
-   - Step-by-step instructions for generating a trading pair configuration JSON file.
-
-### 4. **Deploying and Running the Bot**
-   - Comprehensive guide to setting up, deploying, and running the trading bot on your local or remote server.
-
----
+# Trade API for custom bots
 
 ## Additional Resources
 - [Zano Trade Dex](https://trade.zano.org)
@@ -84,7 +69,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 - [Ionic Swaps Overview](https://docs.zano.org/docs/build/confidential-assets/ionic-swaps)
 
 ## RestAPI ENDPOINTS
-**base URL** - [https://trade.zano.org]
+**base URL** - https://trade.zano.org
 
 ### 1. **Authenticate in system**:
 - `METHOD`: <kbd>POST</kbd><br>  
@@ -102,7 +87,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 }
 ```
 >Explanation of Fields:  
->- To get ```data``` you should call [window.zano.request('GET_WALLET_DATA')](https://docs.zano.org/docs/build/zano-companion/get-wallet-data/#request) method from Zano extension.
+>- To get ```data``` you should [sign some message using Zano wallet](https://docs.zano.org/docs/build/rpc-api/wallet-rpc-api/sign_message/) (random string)
 
 #### Response:
 ```typescript
@@ -111,7 +96,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 ---
 
-### 2. **Get page of your orders**
+### 2. **Get your active orders**
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/orders/get-user-page`<br>  
 #### Request:  
@@ -164,7 +149,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 ---
 
-### 3. **Create order**
+### 3. **Create new order**
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/orders/create`<br>  
 #### Request:  
@@ -172,8 +157,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 {  
    token: string,  
    orderData: {
-      type: 'buy' | 'sell';
-      side: "limit" | "market";
+      type: 'buy' | 'sell'; 
+      side: "limit"  // field naming will be fixed soon. It won't effect bots, both field name will work
       price: string;
       amount: string;
       pairId: number;
@@ -204,7 +189,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ```
 ---
 
-### 5. **Apply your order**
+### 5. **Apply for matched order**
+> Use this method to apply if another side hasn't done it yet. 
+> You can check if they applied by **transaction** field in applyTips. If it's `false` you can apply for it otherwise you are the finalizer and should use **Сonfirm transaction** method.
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/orders/apply-order`<br> 
 #### Request:  
@@ -229,6 +216,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ---
 
 ### 6. **Сonfirm transaction**
+> Use this method to confirm that you have finalized the transaction (order or part). You can get its id from **get-active-tx-by-orders-ids** method
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/transactions/confirm`<br>  
 #### Request:  
@@ -257,7 +245,9 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ---
 
 ### 8. **Ping activity checker**   
-*👍 You should call this method every 10 seconds to keep ``instant`` icon  ![instant icon](./assets/images/instant.jpg)*
+>*You should call this method every 10 seconds to keep ``instant`` icon, so users know that your bot will accept the order immediately.
+
+![instant icon](./assets/images/instant.jpg)*
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/dex/renew-bot`<br>  
 #### Request:  
@@ -275,6 +265,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 ---
 
 ### 9. **Get active Tx by orders' Ids**
+> Get active transaction data by matching 2 orders. 
+So you can check if the transaction is already confirmed by another user and/or get proposal hex.
 - `METHOD`: <kbd>POST</kbd><br>  
 - `PATH`: `/api/transactions/get-active-tx-by-orders-ids`<br>  
 #### Request: 
