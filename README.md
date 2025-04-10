@@ -83,3 +83,218 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
 - [Zano Documentation](https://docs.zano.org)
 - [Ionic Swaps Overview](https://docs.zano.org/docs/build/confidential-assets/ionic-swaps)
 
+## RestAPI ENDPOINTS
+**base URL** - [https://trade.zano.org]
+
+### 1. **Authenticate in system**:
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/auth`<br>  
+#### Request:  
+```typescript
+{  
+   data: {
+      address: string,  
+      alias: string,  
+      message: string,  
+      signature: string,
+   },    
+   neverExpires: boolean,    
+}
+```
+>Explanation of Fields:  
+>- To get ```data``` you should call [window.zano.request('GET_WALLET_DATA')](https://docs.zano.org/docs/build/zano-companion/get-wallet-data/#request) method from Zano extension.
+
+#### Response:
+```typescript
+   success: boolean;
+   data?: string // error message 
+```
+---
+
+### 2. **Get page of your orders**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/get-user-page`<br>  
+#### Request:  
+```typescript
+{  
+   token: string,  
+   pairId: number,  
+}
+```
+#### Response:
+```typescript
+   success: boolean;
+   data: {
+        orders: {
+            id: number;
+            type: string;
+            timestamp: string;
+            side: string;
+            price: string;
+            amount: string;
+            total: string;
+            pair_id: number;
+            user_id: number;
+            status: string;
+            left: string;
+            hasNotification: boolean;
+            createdAt: string;
+            updatedAt: string;
+            isInstant: boolean;
+        }[];
+
+        applyTips: {
+            id: number;
+            left: string;
+            price: string;
+            user: {
+                alias: string;
+                address: string;
+                createdAt: string;
+                updatedAt: string;
+            };
+            type: string;
+            total: string;
+            connected_order_id: number;
+            transaction: boolean;
+            hex_raw_proposal: string;
+            isInstant: boolean;
+        }[];
+    }
+```
+---
+
+### 3. **Create order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/create`<br>  
+#### Request:  
+```typescript
+{  
+   token: string,  
+   orderData: {
+      type: 'buy' | 'sell';
+      side: "limit" | "market";
+      price: string;
+      amount: string;
+      pairId: number;
+   }   
+}
+```
+#### Response:
+```typescript
+   success: boolean;
+   data?: string // error message 
+```
+---
+
+### 4. **Delete your order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/cancel`<br>  
+#### Request:  
+```typescript
+{  
+   token: string,  
+   orderId: number,  
+}
+```
+#### Response:
+```typescript
+   success: boolean;
+   data?: string // error message 
+```
+---
+
+### 5. **Apply your order**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/orders/apply-order`<br> 
+#### Request:  
+```typescript
+{  
+   token: string,  
+   orderData: {
+      id: string;
+      connected_order_id: string;
+      hex_raw_proposal: string; 
+   }, 
+}  
+```
+>Explanation of Fields:  
+>- to get `hex_raw_proposal` create [ionic swap proposal](https://docs.zano.org/docs/build/rpc-api/wallet-rpc-api/ionic_swap_generate_proposal/) via Zano wallet API;
+>- hex_raw_proposal - Hex-encoded proposal raw data(encrypted with common shared key). Includes half-created transaction template and some extra information that would be needed counterparty to finialize and sign transaction
+#### Response:
+```typescript
+   success: boolean;
+   data?: string // error message 
+```
+---
+
+### 6. **Сonfirm transaction**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/transactions/confirm`<br>  
+#### Request:  
+```typescript
+{  
+   token: string,  
+   transactionId: number, 
+}  
+```
+#### Response:
+```typescript
+   success: boolean;
+   data?: string // error message 
+```
+---
+
+### 7. **Get info about a DEX trading pair**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/dex/get-pair`<br>  
+#### Request:  
+```typescript
+{  
+   id: number 
+}  
+```
+---
+
+### 8. **Ping activity checker**   
+*👍 You should call this method every 10 seconds to keep ``instant`` icon  ![instant icon](./assets/images/instant.jpg)*
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/dex/renew-bot`<br>  
+#### Request:  
+```typescript
+{  
+   token: string,  
+   orderId: number, 
+}  
+```
+#### Response:
+```typescript
+   sucess: boolean;
+   data?: string // error message
+```
+---
+
+### 9. **Get active Tx by orders' Ids**
+- `METHOD`: <kbd>POST</kbd><br>  
+- `PATH`: `/api/transactions/get-active-tx-by-orders-ids`<br>  
+#### Request: 
+```typescript
+{  
+   token: string,  
+   firstOrderId: number, 
+   secondOrderId: number, 
+}  
+```
+#### Response:
+```typescript
+   success: boolean;
+   data?: {
+      buy_order_id: number;
+      sell_order_id: number;
+      amount: string;
+      timestamp: number;
+      status: string;
+      creator: string;
+      hex_raw_proposal: string;
+   } | string // error message
+```
