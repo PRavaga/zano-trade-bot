@@ -17,7 +17,9 @@ class ParserHandler {
     private targetParser: MexcParser;
     private lastPriceInfo: PriceInfo = {
         buy: null,
-        sell: null
+        sell: null,
+        depthToSell: null,
+        depthToBuy: null,
     }
 
     constructor(props: ParserHandlerProps) {
@@ -72,15 +74,22 @@ class ParserHandler {
                 try {
                     const marketState = this.getMarketState();
     
-                    if (!marketState.buyPrice || !marketState.sellPrice) {
-                        throw new Error("Price is not available");
+                    if (!marketState.buyPrice || !marketState.sellPrice || !marketState.depthToSell || !marketState.depthToBuy) {
+                        throw new Error("Price or depth is not available yet.");
                     }
     
-                    if (!this.lastPriceInfo.buy || !this.lastPriceInfo.sell) {
+                    if (
+                        !this.lastPriceInfo.buy || 
+                        !this.lastPriceInfo.sell || 
+                        !this.lastPriceInfo.depthToSell || 
+                        !this.lastPriceInfo.depthToBuy
+                    ) {
     
                         this.lastPriceInfo = {
                             buy: marketState.buyPrice,
-                            sell: marketState.sellPrice
+                            sell: marketState.sellPrice,
+                            depthToSell: marketState.depthToSell,
+                            depthToBuy: marketState.depthToBuy,
                         }
     
                         await callback(this.lastPriceInfo);
@@ -91,20 +100,31 @@ class ParserHandler {
     
                     const buyPriceChangePercent = Math.abs((marketState.buyPrice - this.lastPriceInfo.buy) / this.lastPriceInfo.buy) * 100;
                     const sellPriceChangePercent = Math.abs((marketState.sellPrice - this.lastPriceInfo.sell) / this.lastPriceInfo.sell) * 100;
+
+                    const buyDepthChangePercent = Math.abs((marketState.depthToBuy - this.lastPriceInfo.depthToBuy) / this.lastPriceInfo.depthToBuy) * 100;
+                    const sellDepthChangePercent = Math.abs((marketState.depthToSell - this.lastPriceInfo.depthToSell) / this.lastPriceInfo.depthToSell) * 100;
     
                     if (
                         buyPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT ||
-                        sellPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT
+                        sellPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT ||
+                        buyDepthChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT ||
+                        sellDepthChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT
                     ) {
                         logger.detailedInfo(`
-                            Price change detected: 
+                            Price or depth change detected: 
                             buy ${buyPriceChangePercent.toFixed(2)}%, 
-                            sell ${sellPriceChangePercent.toFixed(2)}%`
+                            sell ${sellPriceChangePercent.toFixed(2)}%
+                            
+                            depthToBuy ${buyDepthChangePercent.toFixed(2)}%,
+                            depthToSell ${sellDepthChangePercent.toFixed(2)}%
+                            `
                         );
     
                         this.lastPriceInfo = {
                             buy: marketState.buyPrice,
-                            sell: marketState.sellPrice
+                            sell: marketState.sellPrice,
+                            depthToSell: marketState.depthToSell,
+                            depthToBuy: marketState.depthToBuy,
                         }
     
                         await callback(this.lastPriceInfo);

@@ -9,6 +9,8 @@ export type NotificationParams = [
 export interface PriceInfo {
     buy: number | null;
     sell: number | null;
+    depthToSell: number | null;
+    depthToBuy: number | null;
 }
 
 export type ParserType = 'mexc';

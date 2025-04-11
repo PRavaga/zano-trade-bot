@@ -485,12 +485,17 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 		throw new Error("Error: asset decimal point is not a number");
 	}
 
+	function reduceDepthBySensitivityPercent(depth: number) {
+		const sensitivityMultiplier = (100 - env.PRICE_CHANGE_SENSITIVITY_PERCENT) / 100;
+		return depth * sensitivityMultiplier;
+	}
+
 
 	const maxAmountCoin = new Decimal(savedOrder?.remaining || configItem.amount);
 
 	const maxDepthAmountZano = configItem.type === "buy" ?
-		new Decimal(configItem.marketState?.depthToBuy || 0) :
-		new Decimal(configItem.marketState?.depthToSell || 0);
+		new Decimal(reduceDepthBySensitivityPercent(configItem.marketState?.depthToBuy || 0)) :
+		new Decimal(reduceDepthBySensitivityPercent(configItem.marketState?.depthToSell || 0));
 
 	const maxDepthAmountCoin = maxDepthAmountZano.div(configItem.price);
 	const orderAmount = Decimal.min(maxAmountCoin, maxDepthAmountCoin);
