@@ -364,7 +364,7 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 		throw new Error("Error: error while request or orders is not array or not contained in response");
 	}
 
-	logger.detailedInfo("Updating remaining amount...");
+	// logger.detailedInfo("Updating remaining amount...");
 
 	const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
