@@ -20,6 +20,7 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      PRICE_SELL_PERCENT="5"
      PRICE_BUY_PERCENT="5"
      PRICE_CHANGE_SENSITIVITY_PERCENT="10"
+     DEPTH_CHANGE_SENSITIVITY_PERCENT="10"
      PARSER_ENABLED="true"
      ```
 
@@ -31,7 +32,8 @@ A trading bot for the Zano Trade Dex ([https://trade.zano.org](https://trade.zan
      - `PRICE_INTERVAL_SEC`: Price fetch time
      - `PRICE_SELL_PERCENT`: % to add to the price for selling.
      - `PRICE_BUY_PERCENT`: % to subtract from the price for buying.
-     - `PRICE_CHANGE_SENSITIVITY_PERCENT`: Allowed slippage
+     - `PRICE_CHANGE_SENSITIVITY_PERCENT`: Allowed slippage for price changes.
+     - `DEPTH_CHANGE_SENSITIVITY_PERCENT`: Allowed slippage for depth changes.
      - `PARSER_ENABLED`: If set to `true`, enables api parser
 
 

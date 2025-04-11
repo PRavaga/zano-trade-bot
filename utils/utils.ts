@@ -486,7 +486,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 	}
 
 	function reduceDepthBySensitivityPercent(depth: number) {
-		const sensitivityMultiplier = (100 - env.PRICE_CHANGE_SENSITIVITY_PERCENT) / 100;
+		const sensitivityMultiplier = (100 - env.DEPTH_CHANGE_SENSITIVITY_PERCENT) / 100;
 		return depth * sensitivityMultiplier;
 	}
 

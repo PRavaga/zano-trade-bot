@@ -107,8 +107,8 @@ class ParserHandler {
                     if (
                         buyPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT ||
                         sellPriceChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT ||
-                        buyDepthChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT ||
-                        sellDepthChangePercent > env.PRICE_CHANGE_SENSITIVITY_PERCENT
+                        buyDepthChangePercent > env.DEPTH_CHANGE_SENSITIVITY_PERCENT ||
+                        sellDepthChangePercent > env.DEPTH_CHANGE_SENSITIVITY_PERCENT
                     ) {
                         logger.detailedInfo(`
                             Price or depth change detected: 
