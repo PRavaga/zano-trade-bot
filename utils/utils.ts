@@ -195,7 +195,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 	const currentAssetAmount = notationToString(matchedApplyTip.type === "buy" ?
 		targetAmount.toString() :
 		targetAmount.mul(priceDecimal).toString()
-	)
+	);
 
 	const firstCurrencyId = pairData?.first_currency.asset_id;
 	const secondCurrencyId = pairData?.second_currency.asset_id;
@@ -233,7 +233,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
 			await Order.update(
 				{
-					appliedTo: [...prevOrder?.appliedTo, parseInt(matchedApplyTip.id?.toString(), 10)]
+					appliedTo: [...prevOrder?.appliedTo, parseInt(matchedApplyTip.id?.toString(), 10)],
 				},
 				{
 					where: {
@@ -252,6 +252,9 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 		const success = await _processTransaction(matchedApplyTip.hex_raw_proposal, matchedApplyTip.id, authToken, txData);
 		if (success) {
 			await saveAppliedId(matchedApplyTip.id);
+			if (trade_id) {
+				await updateRemaining(trade_id as string, targetAmount.toString());
+			}
 		}
 		return _onOrdersNotify.apply(this, arguments);
 	} else {
@@ -332,6 +335,10 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 				throw new Error("Apply order request responded with an error");
 			}
 		} else {
+
+			if (trade_id) {
+				await updateRemaining(trade_id, targetAmount.toString());
+			}
 			await saveAppliedId(matchedApplyTip.id);
 		}
 
@@ -378,36 +385,36 @@ export async function saveOrderinfo(authToken: string, observedOrderId: number, 
 
 		logger.detailedInfo(`Order info saved. Remaining amount: ${newObservedOrder?.left} for trade_id: ${trade_id}`);
 	} else {
-		const spent = new Decimal(newObservedOrder?.amount || '0')
-			.minus(new Decimal(newObservedOrder?.left || '0'))
-			.toNumber();
+		// const spent = new Decimal(newObservedOrder?.amount || '0')
+		// 	.minus(new Decimal(newObservedOrder?.left || '0'))
+		// 	.toNumber();
 
-		logger.detailedInfo(`Spent amount: ${spent} for trade_id: ${trade_id}`);
-		
-
-		const existingOrder = await Order.findOne({
-			where: {
-				trade_id: trade_id
-			}
-		});
-
-		if (!existingOrder) {
-			throw new Error(`Order not found in the database (${trade_id})!`);
-		}
-
-		const newRemaining = new Decimal(existingOrder.remaining).minus(spent);
+		// logger.detailedInfo(`Spent amount: ${spent} for trade_id: ${trade_id}`);
 
 
-		await Order.update({
-			// remaining: newRemaining.gt(0) ? newRemaining?.toString() : '0',
-			remainin: existingOrder.remaining,
-		}, {
-			where: {
-				trade_id: trade_id
-			}
-		});
+		// const existingOrder = await Order.findOne({
+		// 	where: {
+		// 		trade_id: trade_id
+		// 	}
+		// });
 
-		logger.detailedInfo(`Order info saved. Remaining: ${newRemaining?.toString()} for trade_id: ${trade_id}`);
+		// if (!existingOrder) {
+		// 	throw new Error(`Order not found in the database (${trade_id})!`);
+		// }
+
+		// const newRemaining = new Decimal(existingOrder.remaining).minus(spent);
+
+
+		// await Order.update({
+		// 	// remaining: newRemaining.gt(0) ? newRemaining?.toString() : '0',
+		// 	remaining: existingOrder.remaining,
+		// }, {
+		// 	where: {
+		// 		trade_id: trade_id
+		// 	}
+		// });
+
+		// logger.detailedInfo(`Order info saved. Remaining: ${newRemaining?.toString()} for trade_id: ${trade_id}`);
 	}
 }
 
@@ -798,3 +805,28 @@ export function trimDecimalToLength(str: string, maxLength: number = 21) {
 	return intPart + "." + decPart.slice(0, available);
 }
 
+export async function updateRemaining(trade_id: string, spent: string) {
+	const existingOrder = await Order.findOne({
+		where: {
+			trade_id: trade_id
+		}
+	});
+
+	if (!existingOrder) {
+		throw new Error(`Order not found in the database (${trade_id})!`);
+	}
+
+	const newRemaining = new Decimal(existingOrder.remaining).minus(new Decimal(spent));
+
+	await Order.update({
+		remaining: newRemaining.gt(0) ? newRemaining?.toString() : '0',
+	}, {
+		where: {
+			trade_id: trade_id
+		}
+	});
+	
+	logger.detailedInfo(
+		`Order info saved. Remaining: ${newRemaining?.toString()} for trade_id: ${trade_id} (spent ${spent})`
+	);
+}
