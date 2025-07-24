@@ -72,7 +72,7 @@ async function _processTransaction(hex: string, txId: number, authToken: string,
         }
     });
 
-    
+
     if (swapResult === "insufficient_funds") {
         logger.detailedInfo("Opponent has insufficient funds, skipping this apply tip.");
         ordersToIgnore.push(txId);
@@ -135,21 +135,21 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     });
 
     const matchedApplyTip = matchedApplyTipArray
-        .filter(e => !ordersToIgnore.includes(e.id))
+        .filter(e => !ordersToIgnore.includes(e.id) && parseFloat(e.left) && parseFloat(e.left) > 0)
         .reduce((prev, current) => {
-        if (newObservedOrder.type === "buy") {
-            if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
-                return prev;
+            if (newObservedOrder.type === "buy") {
+                if (prev?.price && new Decimal(prev?.price).lessThanOrEqualTo(current.price)) {
+                    return prev;
+                }
+            } else {
+                if (prev?.price && new Decimal(prev?.price).greaterThanOrEqualTo(current.price)) {
+                    return prev;
+                }
             }
-        } else {
-            if (prev?.price && new Decimal(prev?.price).greaterThanOrEqualTo(current.price)) {
-                return prev;
-            }
-        }
 
-        return current;
-    }, null);
-    
+            return current;
+        }, null)
+
     if (!matchedApplyTip) {
         logger.detailedInfo("Apply tips for observed order are not found.");
         logger.detailedInfo("onOrdersNotify finished.");
@@ -163,7 +163,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     const leftDecimal = new Decimal(matchedApplyTip.left);
     const priceDecimal = new Decimal(matchedApplyTip.price);
 
-    const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ? 
+    const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ?
         new Decimal(newObservedOrder.left) : leftDecimal;
 
     const destinationAssetAmount = notationToString(
@@ -201,7 +201,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
     } else {
 
         // return logger.detailedInfo("IGNORING INITIATING SWAP {DEBUGGING}");
-        
+
 
         const params = {
             destinationAssetID: destinationAssetID,
@@ -242,7 +242,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
         if (!result?.success) {
             if (result.data === "Invalid order data") {
                 logger.detailedInfo("Probably the order is already applied, fetching the probable application data...");
-                
+
                 let activeTxRes: any;
                 try {
                     activeTxRes = await FetchUtils.getActiveTxByOrdersIds(1, 2, "test");
@@ -254,7 +254,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
                     }
                 }
                 logger.detailedInfo(activeTxRes);
-                
+
 
                 if (activeTxRes?.success && activeTxRes?.data) {
                     logger.detailedInfo("The order is already applied. The active transaction is:");
@@ -322,15 +322,15 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
     if (env.DELETE_ON_START) {
         const existingOrdersList = await FetchUtils.getUserOrdersPage(authToken, configItem.pairId);
         const existingOrders = existingOrdersList?.data?.orders || [];
-        
+
         for (const existingOrder of existingOrders) {
             if (new Decimal(existingOrder.price).equals(configItem.price) && existingOrder.type === configItem.type) {
                 logger.detailedInfo("Deleting existing order with same price...");
                 await FetchUtils.deleteOrder(authToken, existingOrder.id);
-    
+
             }
         }
-       
+
     }
 
 
@@ -342,7 +342,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
             logger.detailedInfo("getObservedOrder finished.");
             return existingOrder.id as number;
         }
-    
+
         logger.detailedInfo("Existing order not found.");
     }
 
