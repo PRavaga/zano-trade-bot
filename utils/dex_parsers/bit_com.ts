@@ -176,6 +176,8 @@ class BitComParser {
     }
 
     getMarketState() {
+        console.log(this.marketState);
+        
         return this.marketState;
     }
 }
