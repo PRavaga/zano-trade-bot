@@ -95,7 +95,7 @@ class ParserHandler {
                     const marketState = this.getMarketState();
 
                     if (!marketState.buyPrice || !marketState.sellPrice || !marketState.depthToSell || !marketState.depthToBuy) {
-                        throw new Error("Price or depth is not available yet.");
+                        throw new Error(`Price or depth is not available yet for pair ${configItem.pairId}.`);
                     }
 
                     if (
