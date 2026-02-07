@@ -207,7 +207,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 		if (Number.isNaN(destinationDP) || Number.isNaN(currentDP)) {
 			throw new Error("Invalid decimal point data received");
 		}
-		
+
 
 		const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ?
 			new Decimal(newObservedOrder.left) : leftDecimal;
@@ -292,9 +292,9 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 }
 
 export async function saveOrderinfo(
-	authToken: string, 
-	observedOrderId: number, 
-	pairData: PairData, 
+	authToken: string,
+	observedOrderId: number,
+	pairData: PairData,
 	trade_id: string | null,
 	configItem: ConfigItemParsed
 ) {
@@ -368,9 +368,9 @@ export async function saveOrderinfo(
 }
 
 export async function onOrdersNotify(
-	authToken: string, 
-	observedOrderId: number, 
-	pairData: PairData, 
+	authToken: string,
+	observedOrderId: number,
+	pairData: PairData,
 	trade_id: string | null,
 	configItem: ConfigItemParsed
 ) {
@@ -478,7 +478,7 @@ export async function getObservedOrder(authToken: string, configItem: ConfigItem
 	);
 
 	console.log('createRes', createRes);
-	
+
 
 	if (!createRes?.success) {
 		throw new Error("Error: order creation request responded with an error: " + createRes.data);
@@ -563,10 +563,6 @@ export const startActivityChecker = (currentThread: ActiveThread, observedOrderI
 			} catch (error) {
 				logger.error(`Failed to ping activity checker: ${error}, ${currentThread.threadID}`);
 
-				console.log(observedOrderId);
-				await new Promise(resolve => setTimeout(resolve, 5000000));
-				
-
 				const threadActive = checkThreadActivity(currentThread);
 				if (!threadActive) {
 					logger.info("Thread is not active, stopping activity checker...");
@@ -650,9 +646,9 @@ export function destroyThread(id: string) {
 
 	if (thread) {
 		try {
-			deleteActiveThread(thread);
 			thread.socket?.getSocket()?.disconnect();
 			thread.socket?.getSocket()?.removeAllListeners();
+			deleteActiveThread(thread);
 			logger.info(`Thread ${thread.id} destroyed [destroyThread()]`);
 		} catch (error) {
 			logger.error(`Failed to destroy thread ${thread.id}: ${error}`);
