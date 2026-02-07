@@ -207,9 +207,11 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 			throw new Error("Invalid decimal point data received");
 		}
 
+		const remainingInOurOrder = savedOrder?.remaining || new Decimal(newObservedOrder.left);
 
-		const targetAmount = leftDecimal.greaterThanOrEqualTo(newObservedOrder.left) ?
-			new Decimal(newObservedOrder.left) : leftDecimal;
+
+		const targetAmount = leftDecimal.greaterThanOrEqualTo(remainingInOurOrder) ?
+			new Decimal(remainingInOurOrder) : leftDecimal;
 
 		const destinationAssetAmount = notationToString(
 			matchedApplyTip.type === "buy" ?
