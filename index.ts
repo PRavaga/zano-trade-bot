@@ -20,6 +20,9 @@ export async function thread(configItem: ConfigItemParsed) {
         threadID: getConfigItemID(configItem)
     };
 
+    console.log(preparedThreadData);
+    
+
     addActiveThread(preparedThreadData)
 
     logger.info(`Starting thread with id ${preparedThreadData.id}...`);
