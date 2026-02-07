@@ -149,7 +149,7 @@ async function startWithParser(configItem: ConfigItemParsed) {
     const configWithParser = env.readConfig.filter(e => e.parser_config).map(e => {
         return {
             ...e,
-            price: new Decimal(2**53 - 1) // initial price will be replaced by parser
+            price: new Decimal(0) // initial price will be replaced by parser
             // set a huge price to avoid accidental execution in case of bugs
         }
     });
