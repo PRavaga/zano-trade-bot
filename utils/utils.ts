@@ -118,10 +118,9 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 
 	const newObservedOrder = orders.find(e => e.id === observedOrderId);
 
-	if (!newObservedOrder || new Decimal(newObservedOrder.left).lessThanOrEqualTo(0)) {
+	if (!newObservedOrder) {
 		logger.info("Observed order has been finished or canceled.");
 		logger.detailedInfo(newObservedOrder);
-		// process.exit(0);
 		return;
 	}
 
