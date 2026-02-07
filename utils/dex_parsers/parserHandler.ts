@@ -140,6 +140,7 @@ class ParserHandler {
                             
                             depthToBuy ${buyDepthChangePercent.toFixed(2)}%,
                             depthToSell ${sellDepthChangePercent.toFixed(2)}%
+                            PAIR: ${configItem.pairId}
                             `
                         );
 
