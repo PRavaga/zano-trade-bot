@@ -207,7 +207,7 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 			throw new Error("Invalid decimal point data received");
 		}
 
-		const remainingInOurOrder = savedOrder?.remaining || new Decimal(newObservedOrder.left);
+		const remainingInOurOrder = savedOrder?.remaining !== undefined ? savedOrder.remaining : new Decimal(newObservedOrder.left);
 
 
 		const targetAmount = leftDecimal.greaterThanOrEqualTo(remainingInOurOrder) ?
