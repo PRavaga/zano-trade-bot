@@ -10,6 +10,7 @@ import { destroyThread } from "./utils/utils";
 import ParserHandler from "./utils/dex_parsers/parserHandler";
 import telegramHandler from "./utils/telegramHandler";
 import { get } from "http";
+import { Decimal } from "decimal.js";
 
 export async function thread(configItem: ConfigItemParsed) {
 
@@ -145,8 +146,14 @@ async function startWithParser(configItem: ConfigItemParsed) {
         await telegramHandler.init();
     }
 
-    const configWithParser = env.readConfig.filter(e => e.parser_config);
-    const configWithoutParser = env.readConfig.filter(e => !e.parser_config);
+    const configWithParser = env.readConfig.filter(e => e.parser_config).map(e => {
+        return {
+            ...e,
+            price: new Decimal(2**53 - 1) // initial price will be replaced by parser
+            // set a huge price to avoid accidental execution in case of bugs
+        }
+    });
+    const configWithoutParser = env.readConfig.filter(e => !e.parser_config)
 
     if (configWithoutParser.length > 0) {
         await startThreadsFromConfig(configWithoutParser);

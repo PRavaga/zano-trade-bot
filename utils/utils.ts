@@ -664,7 +664,6 @@ export function getConfigItemID(configItem: ConfigItemParsed) {
 	const configString = `
 		${configItem.pairId}
 		${configItem.amount}
-		${configItem.price.toString()}
 		${configItem.type}
 		${configItem.trade_id}
 		${!!configItem.parser_config}
