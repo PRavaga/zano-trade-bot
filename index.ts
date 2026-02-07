@@ -96,11 +96,8 @@ async function startWithParser(configItem: ConfigItemParsed) {
                 threadID: e.threadID
             })))).filter((e: { threadID: string }) => e.threadID === getConfigItemID(configItem));
 
-            console.log(JSON.parse(JSON.stringify(state.activeThreads.map(e => ({
-                id: e.id,
-                threadID: e.threadID
-            })))));
-            console.log('targetID:', getConfigItemID(configItem));
+            console.log(state.activeThreads);
+            console.log('targetID:', configItem, getConfigItemID(configItem));
             
             
 
