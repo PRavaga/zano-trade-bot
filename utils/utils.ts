@@ -563,6 +563,10 @@ export const startActivityChecker = (currentThread: ActiveThread, observedOrderI
 			} catch (error) {
 				logger.error(`Failed to ping activity checker: ${error}, ${currentThread.threadID}`);
 
+				console.log(currentThread);
+				await new Promise(resolve => setTimeout(resolve, 5000000));
+				
+
 				const threadActive = checkThreadActivity(currentThread);
 				if (!threadActive) {
 					logger.info("Thread is not active, stopping activity checker...");
