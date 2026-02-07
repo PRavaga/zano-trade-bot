@@ -121,6 +121,16 @@ async function _onOrdersNotify(authToken: string, observedOrderId: number, pairD
 	if (!newObservedOrder) {
 		logger.info("Observed order has been finished or canceled.");
 		logger.detailedInfo(newObservedOrder);
+
+		// Mark order as completed in DB so we don't recreate it after restart
+		if (trade_id) {
+			await Order.update({
+				remaining: '0'
+			}, {
+				where: { trade_id }
+			});
+			logger.detailedInfo(`Marked order as completed (remaining=0) for trade_id: ${trade_id}`);
+		}
 		return;
 	}
 
