@@ -9,6 +9,7 @@ import { NotificationParams } from "./interfaces/common/Common";
 import { destroyThread } from "./utils/utils";
 import ParserHandler from "./utils/dex_parsers/parserHandler";
 import telegramHandler from "./utils/telegramHandler";
+import { get } from "http";
 
 export async function thread(configItem: ConfigItemParsed) {
 
@@ -20,7 +21,7 @@ export async function thread(configItem: ConfigItemParsed) {
         threadID: getConfigItemID(configItem)
     };
 
-    console.log(preparedThreadData);
+    console.log(configItem, getConfigItemID(configItem));
     
 
     addActiveThread(preparedThreadData)
