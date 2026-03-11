@@ -28,6 +28,16 @@ export class FetchUtils {
         ).then(res => res.data);
     }
 
+    static async getAuthNonce(address: string, alias: string): Promise<string> {
+        return await axios.post(
+            `${this.apiPath}/api/auth/request-auth`,
+            {
+                address,
+                alias
+            }
+        ).then(res => res.data);
+    }
+
     static async getUserOrdersPage(token: string, pairId: number) {
         return await axios.post(
             `${this.apiPath}/api/orders/get-user-page`, 

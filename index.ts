@@ -28,7 +28,7 @@ function destroyThreads() {
 }
 
 
-const ACTIVITY_PING_INTERVAL = 15*1000;
+const ACTIVITY_PING_INTERVAL = 15 * 1000;
 
 async function thread(configItem: ConfigItemParsed) {
     const socketClient = new SocketClient();
@@ -92,7 +92,7 @@ async function thread(configItem: ConfigItemParsed) {
         logger.detailedInfo("Starting activity checker...");
         logger.detailedInfo(`Will ping activity checker every ${ACTIVITY_PING_INTERVAL / 1000} seconds.`);
 
-        async function checkThreadActivity() {  
+        async function checkThreadActivity() {
             if (!activeThreads.some(thread => thread.id === socketID)) {
                 return false;
             }
@@ -126,7 +126,7 @@ async function thread(configItem: ConfigItemParsed) {
 
                 return startBot();
             }
-        
+
             await new Promise(resolve => setTimeout(resolve, ACTIVITY_PING_INTERVAL));
         }
     })();
