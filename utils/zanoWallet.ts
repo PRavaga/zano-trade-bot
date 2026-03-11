@@ -50,10 +50,9 @@ export class ZanoWallet {
         }
 
         logger.detailedInfo("Generating message for signing with wallet private key in Zano App...");
-        const nonceRes = await FetchUtils.getAuthNonce(address, alias || "").catch(error => {
-            logger.error("Failed to get auth nonce: " + error);
-            throw new Error("Failed to get auth nonce: " + error);
-        });
+        logger.detailedInfo(`Using address: ${address} and alias: ${alias || "no alias"}`);
+        const nonceRes = await FetchUtils.getAuthNonce(address, alias || "");
+        logger.detailedInfo(`Received message: ${nonceRes}`);
         const message = nonceRes;
 
         logger.detailedInfo("Translating message to base64 format...");
