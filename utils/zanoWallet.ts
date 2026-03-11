@@ -2,6 +2,7 @@ import logger from "../logger";
 import { fetchData, fetchZanod } from "./walletUtils";
 import { v4 as uuidv4 } from 'uuid';
 import { addZeros } from "./utils";
+import { FetchUtils } from "./fetchMethods";
 
 const ZANO_ID = "d6329b5b1f7c0805b5c345f4957554002a2f557845f64d7645dae0e051a6498a";
 
@@ -19,11 +20,11 @@ export class ZanoWallet {
         } else {
             const assetRsp = await fetchZanod("get_asset_info", { asset_id: assetId }).then(res => res.json());
             const asset = assetRsp?.result?.asset_descriptor;
-        
+
             if (!asset) {
                 return undefined;
             }
-        
+
             return asset;
         }
     }
@@ -49,8 +50,11 @@ export class ZanoWallet {
         }
 
         logger.detailedInfo("Generating message for signing with wallet private key in Zano App...");
-
-        const message = uuidv4();
+        const nonceRes = await FetchUtils.getAuthNonce(address, alias || "").catch(error => {
+            logger.error("Failed to get auth nonce: " + error);
+            throw new Error("Failed to get auth nonce: " + error);
+        });
+        const message = nonceRes;
 
         logger.detailedInfo("Translating message to base64 format...");
 

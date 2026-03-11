@@ -37,9 +37,20 @@ export class FetchUtils {
         ).then(res => res.data);
     }
 
+
+    static async getAuthNonce(address: string, alias: string): Promise<string> {
+        return await axios.post(
+            `${this.apiPath}/api/auth/request-auth`,
+            {
+                address,
+                alias
+            }
+        ).then(res => res.data);
+    }
+
     static async getUserOrdersPage(token: string, pairId: number): Promise<userOrdersPage> {
         return await axios.post(
-            `${this.apiPath}/api/orders/get-user-page`, 
+            `${this.apiPath}/api/orders/get-user-page`,
             {
                 token,
                 pairId,
@@ -52,7 +63,7 @@ export class FetchUtils {
         data?: string // error message
     }> {
         return await axios.post(
-            `${this.apiPath}/api/orders/create`, 
+            `${this.apiPath}/api/orders/create`,
             {
                 token,
                 orderData
@@ -65,7 +76,7 @@ export class FetchUtils {
         data?: string // error message
     }> {
         return await axios.post(
-            `${this.apiPath}/api/orders/cancel`, 
+            `${this.apiPath}/api/orders/cancel`,
             {
                 orderId,
                 token
@@ -78,7 +89,7 @@ export class FetchUtils {
         data?: string // error message
     }> {
         return await axios.post(
-            `${this.apiPath}/api/orders/apply-order`, 
+            `${this.apiPath}/api/orders/apply-order`,
             {
                 token,
                 orderData,
@@ -91,23 +102,23 @@ export class FetchUtils {
         data?: string // error message
     }> {
         return await axios.post(
-            `${this.apiPath}/api/transactions/confirm`, 
+            `${this.apiPath}/api/transactions/confirm`,
             {
                 transactionId,
                 token
             }
         ).then(res => res.data);
     }
-    
+
     static async getPair(id: number) {
         return await axios.post(
-            `${this.apiPath}/api/dex/get-pair`, 
+            `${this.apiPath}/api/dex/get-pair`,
             {
                 id: id
             }
         ).then(res => res.data).catch(e => {
             console.log('error while fetching activity checker');
-            
+
         })
     }
 
@@ -117,7 +128,7 @@ export class FetchUtils {
         data?: string // error message
     }> {
         return await axios.post(
-            `${this.apiPath}/api/dex/renew-bot`, 
+            `${this.apiPath}/api/dex/renew-bot`,
             {
                 orderId,
                 token
@@ -135,11 +146,11 @@ export class FetchUtils {
             status: string;
             creator: string;
             hex_raw_proposal: string;
-        } 
+        }
         | string // error message
     }> {
         return await axios.post(
-            `${this.apiPath}/api/transactions/get-active-tx-by-orders-ids`, 
+            `${this.apiPath}/api/transactions/get-active-tx-by-orders-ids`,
             {
                 firstOrderId,
                 secondOrderId,
