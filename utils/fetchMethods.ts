@@ -38,7 +38,10 @@ export class FetchUtils {
     }
 
 
-    static async getAuthNonce(address: string, alias: string): Promise<string> {
+    static async getAuthNonce(address: string, alias: string): Promise<{
+        success: boolean;
+        data: string; // nonce or error message
+    }> {
         return await axios.post(
             `${this.apiPath}/api/auth/request-auth`,
             {

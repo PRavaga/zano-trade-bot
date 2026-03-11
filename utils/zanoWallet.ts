@@ -51,7 +51,7 @@ export class ZanoWallet {
 
         logger.detailedInfo("Generating message for signing with wallet private key in Zano App...");
         logger.detailedInfo(`Using address: ${address} and alias: ${alias || "no alias"}`);
-        const nonceRes = await FetchUtils.getAuthNonce(address, alias || "");
+        const nonceRes = (await FetchUtils.getAuthNonce(address, alias || ""))?.data;
         logger.detailedInfo(`Received message: ${nonceRes}`);
         const message = nonceRes;
 
